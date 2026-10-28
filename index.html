@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Ferramenta gratuita para analisar despesas municipais e folha de pagamento publicadas pelo TCM-BA. Tudo roda no seu navegador: nenhum arquivo é enviado a servidor." />
+  <meta name="color-scheme" content="light dark" />
+  <title>SIGA VOCÊ — Análise de Despesas e Folha de Pagamento · TCM-BA</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/folha-analise.css" />
+  <link rel="stylesheet" href="assets/css/investigacao.css" />
+
+  <script>
+    (function () {
+      var salvo = null;
+      try { salvo = localStorage.getItem('sigavoce-theme'); } catch (e) {}
+      var claro = salvo !== 'dark';
+      document.documentElement.classList.toggle('theme-light', claro);
+    })();
+  </script>
+  <script src="vendor/chart.umd.min.js" defer></script>
+  <script type="module" src="assets/js/main.js"></script>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <span class="header-eyebrow">Controle Social</span>
+      <h1 class="header-title">
+        <span class="siga-wrap" id="siga-wrap">
+          <span class="siga-normal">SIGA</span>
+          <span class="siga-reverse">AGIS</span>
+        </span><span class="title-dash"> – </span><span class="title-slot"><span class="voce-text">VOCÊ</span><span class="ti-text"> T.I</span></span>
+      </h1>
+      <p class="header-subtitle" id="header-subtitle">ANÁLISE DE DADOS PÚBLICOS</p>
+      <div class="header-rule"></div>
+      <nav class="header-nav">
+        <button class="btn-theme" id="btn-theme" type="button">☀ Claro</button>
+        <button class="header-nav-btn" id="btn-sobre" aria-expanded="false">
+          Sobre o Projeto
+        </button>
+      </nav>
+    </div>
+
+    <div class="header-about" id="header-about" aria-hidden="true">
+      <div class="header-about-inner">
+        <h2 class="about-title">Sobre o Projeto</h2>
+        <p>
+          O <strong>SIGA VOCÊ</strong> é uma das iniciativas do <strong>AGIS T.I</strong> voltada ao controle social
+          das finanças públicas municipais. O objetivo aqui é tornar acessível, a qualquer cidadão, a análise dos
+          dados públicos disponibilizados pelo Tribunal de Contas dos Municípios da Bahia
+          (<strong>TCM-BA</strong>), sem necessidade de conhecimento técnico ou acesso a sistemas complexos.
+        </p>
+        <p>
+          Aqui você encontra, de forma organizada e filtrável, os pagamentos realizados pelas prefeituras e
+          entidades municipais — além da Folha de Pagamento publicada pelo TCM-BA, frequentemente bloqueada
+          para edição. Os dados são os mesmos publicados oficialmente; esta ferramenta apenas os transforma
+          em uma visualização mais clara e direta.
+        </p>
+        <p>
+          Acreditamos que <strong>a transparência é um instrumento de democracia — e que dados públicos devem ser
+          públicos de verdade.</strong>
+        </p>
+        <p>
+          <strong>Privacidade:</strong> toda a conversão acontece no seu próprio navegador. Os arquivos que você
+          carrega não são enviados a nenhum servidor e somem ao fechar a página.
+        </p>
+        <p>
+          Para uma análise mais detalhada, incluindo a análise completa dos processos de pagamento e a identificação de
+          possíveis irregularidades, entre em contato pelo E-mail:<strong> atendimento@projetoagis.com</strong>.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toolbar" id="toolbar" aria-label="Você está em" hidden>
+    <div class="toolbar-inner">
+      <ol class="crumbs">
+        <li><a href="#" id="crumb-home">← Início</a></li>
+        <li id="crumb-atual"></li>
+      </ol>
+    </div>
+  </nav>
+
+  <main>
+
+    <section class="chooser" id="chooser">
+      <h2 class="chooser-title">O que você deseja analisar?</h2>
+      <p class="chooser-sub">Escolha uma ferramenta abaixo.</p>
+      <div class="tools-list" id="home-tools"></div>
+    </section>
+
+    <section class="mode-view" id="view-despesas" hidden>
+
+      <div class="info-card" id="info-card" hidden>
+        <div class="info-card-icon">&#9432;</div>
+        <p class="info-card-text info-card-detail" id="info-card-detail" hidden></p>
+        <p class="info-card-sub">
+          Certifique-se de usar o arquivo <strong>.csv</strong> exportado pelo TCM-BA com a fase
+          <strong>Pagamento</strong>, todos os campos obrigatórios presentes e valores numéricos
+          na coluna <strong>Valor</strong>.<br>
+          Em caso de dúvidas: <a href="mailto:atendimento@projetoagis.com">atendimento@projetoagis.com</a>
+        </p>
+      </div>
+
+      <section class="upload-section" id="upload-section">
+        <p class="upload-instruction">Acesse <a href="https://www.tcm.ba.gov.br/controle-social/consulta-de-despesas/" target="_blank" rel="noopener noreferrer">tcm.ba.gov.br/controle-social/consulta-de-despesas/</a>, informe o ano, fase <strong>PAGAMENTO</strong>, Município e Entidade. Ou busque por CNPJ ou CPF desejado.</p>
+
+        <div class="upload-zone" id="drop-zone" role="button" tabindex="0" aria-label="Selecionar arquivos CSV de despesas">
+          <span class="upload-icon">&#8659;</span>
+          <span class="upload-label">Clique para selecionar ou arraste o arquivo aqui</span>
+          <span class="upload-hint">Somente arquivos .csv exportados pelo site do TCM-BA</span>
+        </div>
+        <input type="file" id="csv-input" accept=".csv" multiple />
+      </section>
+
+      <section id="analysis-area">
+
+        <div class="analysis-header">
+          <div class="analysis-file-info">
+            <span class="analysis-file-label" id="analysis-file-label">Arquivo carregado:</span>
+            <span id="analysis-filename"></span>
+          </div>
+          <div class="analysis-actions">
+            <button class="btn-add-file" id="btn-add-file">&#43; Adicionar arquivo</button>
+            <button class="btn-reset" id="btn-reset">&#8634; Reiniciar</button>
+          </div>
+        </div>
+
+        <div class="summary-grid" id="summary-cards"></div>
+
+        <div id="chart-section" class="chart-section chart-hidden">
+          <div class="chart-header">
+            <span class="chart-title">Evolução de Pagamentos por Ano</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="payments-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-header">
+            <span class="filter-title">Filtros</span>
+            <span class="filter-status" id="filter-status"></span>
+            <button class="btn-clear-filters" id="btn-clear-filters">&#10005; Limpar filtros</button>
+          </div>
+          <div class="filter-grid">
+
+            <div class="filter-field filter-field--municipio" id="filter-field-municipio" hidden>
+              <label class="filter-label" for="filter-municipio">Município</label>
+              <select id="filter-municipio" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+
+            <div class="filter-field filter-field--wide">
+              <label class="filter-label" for="filter-credor">Credor</label>
+              <input type="text" id="filter-credor" class="filter-input"
+                     placeholder="Digite parte do nome..." autocomplete="off" />
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="filter-fonte">
+                Fonte
+                <span class="filter-help">
+                  <button class="filter-help-btn" type="button" aria-label="Informação sobre Fonte">?</button>
+                  <span class="filter-tooltip">O filtro usa o <strong>código</strong> da fonte (sempre correto). Descrições distintas para o mesmo código aparecem identificadas pelo código entre colchetes.</span>
+                </span>
+              </label>
+              <select id="filter-fonte" class="filter-select">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="filter-orgao">
+                Órgão
+                <span class="filter-help">
+                  <button class="filter-help-btn" type="button" aria-label="Informação sobre Órgão">?</button>
+                  <span class="filter-tooltip">A escrita pode estar em duplicidade
+                    por não padronização das Unidades.Para uma análise completa, entre em contato.</span>
+                </span>
+              </label>
+              <select id="filter-orgao" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="filter-unidade">
+                Unid. Orçamentária
+                <span class="filter-help filter-help--left">
+                  <button class="filter-help-btn" type="button" aria-label="Informação sobre Unidade Orçamentária">?</button>
+                  <span class="filter-tooltip">A escrita pode estar em duplicidade
+                    por não padronização das Unidades. Para uma análise completa, entre em contato.</span>
+                </span>
+              </label>
+              <select id="filter-unidade" class="filter-select">
+                <option value="">Todas</option>
+              </select>
+            </div>
+
+            <div class="filter-field">
+              <label class="filter-label" for="filter-elemento">
+                Elemento Gestor
+                <span class="filter-help">
+                  <button class="filter-help-btn" type="button" aria-label="Informação sobre Elemento Gestor">?</button>
+                  <span class="filter-tooltip">O filtro usa o <strong>código</strong> do elemento (sempre correto). Descrições distintas para o mesmo código aparecem identificadas pelo código entre colchetes.</span>
+                </span>
+              </label>
+              <select id="filter-elemento" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+
+            <div class="filter-field filter-field--date">
+              <label class="filter-label">Data de Pagamento</label>
+              <div class="filter-date-range">
+                <select id="filter-data-ano" class="filter-select filter-date-select filter-date-select--ano">
+                  <option value="">Ano...</option>
+                </select>
+                <select id="filter-data-de" class="filter-select filter-date-select">
+                  <option value="">De...</option>
+                </select>
+                <span class="filter-date-sep">até</span>
+                <select id="filter-data-ate" class="filter-select filter-date-select">
+                  <option value="">Até...</option>
+                </select>
+              </div>
+              <div class="filter-quarter-row">
+                <button class="btn-quarter" data-q="1" id="btn-q1">1° Trim</button>
+                <button class="btn-quarter" data-q="2" id="btn-q2">2° Trim</button>
+                <button class="btn-quarter" data-q="3" id="btn-q3">3° Trim</button>
+                <button class="btn-quarter" data-q="4" id="btn-q4">4° Trim</button>
+              </div>
+            </div>
+
+            <div class="filter-field filter-field--prazo">
+              <label class="filter-label">Prazo de Pagamento <span class="filter-range-unit">dias entre empenho e pagamento</span></label>
+              <div class="range-widget" id="prazo-slider-widget" aria-disabled="true">
+                <div class="range-value" id="range-prazo-val-min">—</div>
+                <div class="range-track-container">
+                  <div class="range-track-bg"></div>
+                  <div class="range-track-fill" id="range-prazo-fill"></div>
+                  <input type="range" class="range-input range-input--min" id="range-prazo-min" min="0" max="1000" value="0">
+                  <input type="range" class="range-input range-input--max" id="range-prazo-max" min="0" max="1000" value="1000">
+                </div>
+                <div class="range-value" id="range-prazo-val-max">—</div>
+              </div>
+              <div class="range-caption" id="range-prazo-caption">Carregue um arquivo para ativar</div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="table-controls">
+          <span class="table-info" id="table-info-top"></span>
+          <div class="pagination">
+            <button class="btn-page" id="btn-prev-top" disabled>&#8592; Anterior</button>
+            <span class="page-indicator" id="page-indicator-top"></span>
+            <button class="btn-page" id="btn-next-top">Próxima &#8594;</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+
+        <div class="table-controls">
+          <span class="table-info" id="table-info-bot"></span>
+          <div class="pagination">
+            <button class="btn-page" id="btn-prev-bot" disabled>&#8592; Anterior</button>
+            <span class="page-indicator" id="page-indicator-bot"></span>
+            <button class="btn-page" id="btn-next-bot">Próxima &#8594;</button>
+          </div>
+        </div>
+
+      </section>
+    </section>
+
+    <section class="mode-view" id="view-folha" hidden>
+
+      <div class="info-card info-card--folha" id="folha-error" hidden>
+        <div class="info-card-icon">&#9432;</div>
+        <p class="info-card-text" id="folha-error-text"></p>
+        <p class="info-card-sub">
+          Em caso de dúvidas: <a href="mailto:atendimento@projetoagis.com">atendimento@projetoagis.com</a>
+        </p>
+      </div>
+
+      <section class="upload-section" id="folha-upload-section">
+        <p class="upload-instruction">
+          Acesse <a href="https://www.tcm.ba.gov.br/controle-social/pessoal/" target="_blank" rel="noopener noreferrer">tcm.ba.gov.br/controle-social/pessoal</a>,
+          baixe o arquivo <strong>.xls</strong> da unidade desejada e arraste abaixo.
+          O TCM-BA <strong>bloqueia o arquivo</strong> para dificultar o acesso — aqui ele é desbloqueado e organizado em tabela analisável,
+          direto no seu navegador.
+        </p>
+
+        <div class="upload-zone" id="folha-drop-zone" role="button" tabindex="0" aria-label="Selecionar arquivos XLS da folha de pagamento">
+          <span class="upload-icon">&#8659;</span>
+          <span class="upload-label">Clique para selecionar ou arraste o(s) arquivo(s) aqui</span>
+          <span class="upload-hint">Somente arquivos .xls da seção Pessoal do TCM-BA</span>
+        </div>
+        <input type="file" id="folha-input" accept=".xls,.xlsx" multiple />
+      </section>
+
+      <section id="folha-analysis">
+
+        <div class="analysis-header">
+          <div class="analysis-file-info">
+            <span class="analysis-file-label" id="folha-file-label">Planilhas carregadas:</span>
+            <span id="folha-filenames"></span>
+          </div>
+          <div class="analysis-actions">
+            <button class="btn-add-file" id="folha-btn-add">&#43; Adicionar planilhas</button>
+            <button class="btn-reset" id="folha-btn-export" title="Baixar o resultado filtrado como CSV">&#8681; Exportar CSV</button>
+            <button class="btn-reset" id="folha-btn-reset">&#8634; Reiniciar</button>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-header">
+            <span class="filter-title">Filtros</span>
+            <span class="filter-status" id="folha-filter-status"></span>
+            <button class="btn-clear-filters" id="folha-btn-clear">&#10005; Limpar filtros</button>
+          </div>
+          <div class="filter-grid filter-grid--folha">
+            <div class="filter-field filter-field--wide">
+              <label class="filter-label" for="folha-filter-nome">Nome</label>
+              <input type="text" id="folha-filter-nome" class="filter-input"
+                     placeholder="Digite parte do nome..." autocomplete="off" />
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="folha-filter-unidade">Unidade</label>
+              <select id="folha-filter-unidade" class="filter-select">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="folha-filter-ano">Ano</label>
+              <select id="folha-filter-ano" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="folha-filter-competencia">Competência</label>
+              <select id="folha-filter-competencia" class="filter-select">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="folha-filter-regime">Tipo Regime</label>
+              <select id="folha-filter-regime" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="folha-filter-cargo">Cargo</label>
+              <select id="folha-filter-cargo" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="folha-kpis"></div>
+        <div class="comp-strip" id="folha-comp"></div>
+
+        <div id="folha-alerta"></div>
+
+        <div class="report-bar" id="folha-report-bar">
+          <span class="report-bar-title">Relatórios</span>
+          <button class="report-btn" type="button" data-report="regime"><span class="ico" aria-hidden="true">◧</span>Tipo de Regime</button>
+          <button class="report-btn" type="button" data-report="composicao"><span class="ico" aria-hidden="true">▤</span>Composição Salarial</button>
+          <button class="report-btn" type="button" data-report="evolucao"><span class="ico" aria-hidden="true">↗</span>Evolução Mensal / Anual</button>
+          <button class="report-btn" type="button" data-report="receita"><span class="ico" aria-hidden="true">⚖</span>Receita × Folha</button>
+          <button class="report-btn" type="button" data-report="cargos"><span class="ico" aria-hidden="true">☰</span>Cargos</button>
+          <button class="report-btn" type="button" data-report="qualidade"><span class="ico" aria-hidden="true">⚠</span>Qualidade dos Cargos</button>
+        </div>
+
+        <div class="panel-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <span class="panel-title">Quantitativo por Tipo de Regime</span>
+              <button class="btn-ghost" type="button" data-report="regime">Relatório completo →</button>
+            </div>
+            <div class="panel-body" id="folha-regime-panel"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <span class="panel-title">Receita Corrente Líquida e Totais Declarados</span>
+              <button class="btn-ghost" type="button" data-report="receita">Relatório completo →</button>
+            </div>
+            <div class="panel-body" id="folha-rodape-panel"></div>
+          </section>
+        </div>
+
+        <h3 class="section-title" id="folha-table-title">Servidores</h3>
+
+        <div class="table-controls">
+          <span class="table-info" id="folha-info-top"></span>
+          <div class="pagination">
+            <button class="btn-page" id="folha-prev-top" disabled>&#8592; Anterior</button>
+            <span class="page-indicator" id="folha-page-top"></span>
+            <button class="btn-page" id="folha-next-top">Próxima &#8594;</button>
+          </div>
+        </div>
+
+        <div class="table-scroll-top" id="folha-scroll-top" aria-hidden="true">
+          <div class="table-scroll-top-inner" id="folha-scroll-top-inner"></div>
+        </div>
+
+        <div class="table-wrapper" id="folha-table-wrapper">
+          <table>
+            <thead id="folha-head"></thead>
+            <tbody id="folha-body"></tbody>
+          </table>
+        </div>
+
+        <div class="table-controls">
+          <span class="table-info" id="folha-info-bot"></span>
+          <div class="pagination">
+            <button class="btn-page" id="folha-prev-bot" disabled>&#8592; Anterior</button>
+            <span class="page-indicator" id="folha-page-bot"></span>
+            <button class="btn-page" id="folha-next-bot">Próxima &#8594;</button>
+          </div>
+        </div>
+
+        <section class="panel cmp" aria-labelledby="cmp-title">
+          <div class="panel-head">
+            <span class="panel-title" id="cmp-title">Comparação Salarial · Cargo × Regime × Carga Horária</span>
+            <button class="btn-ghost" type="button" id="cmp-export">&#8681; Exportar comparação</button>
+          </div>
+          <p class="cmp-intro">
+            Compara quem tem o <strong>mesmo cargo, o mesmo tipo de regime e a mesma carga horária</strong> na mesma competência,
+            e mostra quem recebe acima dos colegas. Respeita os filtros de Unidade, Tipo Regime e Cargo.
+          </p>
+          <div class="cmp-controls">
+            <div class="filter-field">
+              <label class="filter-label" for="cmp-comp">Competência</label>
+              <select id="cmp-comp" class="filter-select"></select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="cmp-metrica">Comparar</label>
+              <select id="cmp-metrica" class="filter-select"></select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="cmp-min">Mínimo de servidores no grupo</label>
+              <select id="cmp-min" class="filter-select">
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="cmp-ordem">Ordenar grupos por</label>
+              <select id="cmp-ordem" class="filter-select">
+                <option value="amplitude">Maior diferença interna</option>
+                <option value="atipicos">Mais valores atípicos</option>
+                <option value="n">Mais servidores</option>
+                <option value="mediana">Maior mediana</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" for="cmp-busca">Buscar cargo</label>
+              <input type="text" id="cmp-busca" class="filter-input" placeholder="Ex.: gari, professor..." autocomplete="off" />
+            </div>
+          </div>
+          <label class="cmp-check">
+            <input type="checkbox" id="cmp-unificar" />
+            Unificar também as grafias semelhantes (erros de digitação, gênero, abreviação). Confira no relatório "Qualidade dos Cargos".
+          </label>
+          <div id="cmp-content"></div>
+        </section>
+
+      </section>
+    </section>
+
+    <section class="mode-view" id="view-investigacao" hidden>
+
+      <div class="info-card info-card--folha" id="inv-erro" hidden>
+        <div class="info-card-icon">&#9432;</div>
+        <p class="info-card-text" id="inv-erro-texto"></p>
+        <p class="info-card-sub">
+          Em caso de dúvidas: <a href="mailto:atendimento@projetoagis.com">atendimento@projetoagis.com</a>
+        </p>
+      </div>
+
+      <section class="upload-section" id="inv-upload">
+        <p class="upload-instruction">
+          Abra aqui o arquivo <strong>.json</strong> do pacote de investigação que você recebeu. Ele mostra a cadeia
+          de documentos organizada (licitação, contrato, aditivos e pagamentos, com link para cada PDF no portal do
+          TCM-BA) e as consultas que vieram junto. O arquivo é lido no seu navegador e não é enviado a lugar nenhum.
+        </p>
+        <div class="upload-zone" id="inv-drop" role="button" tabindex="0" aria-label="Selecionar o arquivo JSON do pacote">
+          <span class="upload-icon">&#8659;</span>
+          <span class="upload-label">Clique para selecionar ou arraste o arquivo aqui</span>
+          <span class="upload-hint">Somente o arquivo .json do pacote de investigação</span>
+        </div>
+        <input type="file" id="inv-input" accept=".json,application/json" />
+      </section>
+
+      <section id="inv-area" hidden>
+        <div id="inv-cab"></div>
+        <div id="inv-corpo"></div>
+      </section>
+    </section>
+
+  </main>
+
+  <aside class="doc-painel" id="doc-painel" hidden aria-label="Documento">
+    <div class="doc-painel-alca" id="doc-painel-alca" title="Arrastar para redimensionar"></div>
+    <div class="doc-painel-cab">
+      <span class="doc-painel-titulo" id="doc-painel-titulo"></span>
+      <a class="btn-ghost" id="doc-painel-guia" href="#" target="_blank" rel="noopener noreferrer">Nova guia ↗</a>
+      <button type="button" class="doc-painel-fechar" id="doc-painel-fechar" title="Fechar (Esc)" aria-label="Fechar">✕</button>
+    </div>
+    <div class="doc-painel-partes" id="doc-painel-partes" hidden></div>
+    <div class="doc-painel-aviso" id="doc-painel-aviso" hidden>
+      <span id="doc-painel-aviso-texto"></span>
+      <a id="doc-painel-aviso-link" href="#" target="_blank" rel="noopener noreferrer">Abrir em nova guia ↗</a>
+    </div>
+    <div class="doc-painel-corpo">
+      <iframe class="doc-painel-quadro" id="doc-painel-quadro" src="about:blank" title="Documento do TCM-BA"></iframe>
+    </div>
+  </aside>
+
+  <div class="modal-backdrop" id="folha-modal" hidden aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="folha-modal-title">
+      <div class="modal-header">
+        <h3 class="modal-title" id="folha-modal-title">Arquivos para conversão</h3>
+        <button class="modal-close" id="folha-modal-close" type="button" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-help">
+          Competência (<strong>MM-AAAA</strong>) e unidade são lidas do cabeçalho de cada planilha.
+          Confira e ajuste se necessário antes de converter.
+        </p>
+        <ul class="folha-queue" id="folha-queue"></ul>
+        <div class="folha-queue-empty" id="folha-queue-empty">
+          Nenhum arquivo na lista. Clique em <strong>+ Adicionar</strong> para selecionar.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-secondary" id="folha-modal-add" type="button">+ Adicionar arquivo</button>
+        <div class="modal-footer-right">
+          <button class="btn-modal-cancel" id="folha-modal-cancel" type="button">Cancelar</button>
+          <button class="btn-modal-confirm" id="folha-modal-confirm" type="button" disabled>
+            <span id="folha-modal-confirm-label">Converter</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="report-backdrop" id="report-modal" hidden>
+    <div class="report" role="dialog" aria-modal="true" aria-labelledby="report-title">
+      <div class="report-head">
+        <div>
+          <p class="report-eyebrow">Relatório · Folha de Pagamento · TCM-BA</p>
+          <h2 class="report-title" id="report-title"></h2>
+          <p class="report-scope" id="report-scope"></p>
+        </div>
+        <div class="report-actions">
+          <div class="seg" id="report-modo" role="group" aria-label="Agrupar por" hidden>
+            <button type="button" data-modo="mes" aria-pressed="true">Por competência</button>
+            <button type="button" data-modo="ano" aria-pressed="false">Por ano</button>
+          </div>
+          <button class="btn-ghost" type="button" id="report-csv">&#8681; Exportar CSV</button>
+          <button class="btn-ghost" type="button" id="report-print">&#9113; Imprimir / PDF</button>
+          <button class="report-close" type="button" id="report-close" aria-label="Fechar relatório">&times;</button>
+        </div>
+      </div>
+      <div class="report-body" id="report-body"></div>
+      <footer class="report-foot">
+        <span>Fonte: planilhas de Pessoal publicadas pelo TCM-BA · processadas localmente no navegador</span>
+        <span><span id="report-gerado"></span> · SIGA VOCÊ · AGIS T.I</span>
+      </footer>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      Dúvidas? Envie um e-mail para
+      <a href="mailto:atendimento@projetoagis.com">atendimento@projetoagis.com</a>
+    </p>
+    <p class="footer-line2">
+      SIGA - VOCÊ · AGIS T.I · DADOS PÚBLICOS · TCM-BA
+    </p>
+    <p class="footer-line2">
+      Processamento 100% local · nenhum dado sai do seu navegador ·
+      <a href="https://github.com/projetoagis/sigavoce" id="footer-repo" target="_blank" rel="noopener">código aberto</a>
+    </p>
+  </footer>
+
+</body>
+</html>
