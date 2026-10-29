@@ -1,0 +1,33 @@
+export const NATUREZAS_ATENCAO = [
+  ['3.3.90.14.14', 'Diárias – Civil (diárias no país)', 'Viagens sem relatório, valores acima da tabela e os mesmos servidores todo mês.'],
+  ['3.3.90.33.00', 'Passagens e despesas com locomoção', 'Deslocamentos sem finalidade pública comprovada.'],
+  ['3.3.90.30.01', 'Combustíveis e lubrificantes automotivos', 'Consumo incompatível com a frota e abastecimento de veículos que não são do município.'],
+  ['3.3.90.39.19', 'Manutenção e conservação de veículos', 'Peças e serviços que se repetem no mesmo veículo e oficinas sem estrutura para o serviço.'],
+  ['3.3.90.39.12', 'Locação de máquinas e equipamentos', 'Horas-máquina pagas sem controle de uso nem comprovação do serviço.'],
+  ['3.3.90.35.01', 'Assessoria e consultoria técnica ou jurídica', 'Contratação direta por inexigibilidade para serviços genéricos e contínuos.'],
+  ['3.3.90.39.23', 'Festividades e homenagens', 'Shows e eventos com cachês inflados e empresas intermediárias.'],
+  ['3.3.90.39.92', 'Serviços de publicidade institucional', 'Promoção pessoal de gestores paga com dinheiro público.'],
+  ['3.3.90.30.07', 'Gêneros de alimentação', 'Sobrepreço e quantidades incompatíveis com o número de atendidos.'],
+  ['3.3.90.30.09', 'Medicamentos para uso em unidade de saúde', 'Compras emergenciais repetidas e entregas que não chegam à unidade.'],
+  ['3.3.90.39.32', 'Transporte escolar', 'Rotas infladas, quilometragem que não existe e veículos irregulares.'],
+  ['3.3.90.32.00', 'Material, bem ou serviço para distribuição gratuita', 'Entregas sem critério nem lista de beneficiários, sobretudo em ano eleitoral.'],
+  ['3.3.90.39.78', 'Limpeza e conservação', 'Contratos grandes, de execução difícil de medir.'],
+  ['3.3.90.36.00', 'Outros serviços de terceiros – pessoa física', 'Pagamentos a pessoas fora da folha, sem concurso nem contrato.'],
+  ['3.3.90.39.99', 'Outros serviços de terceiros – pessoa jurídica', 'O "outros" onde cabe tudo, e onde muita coisa se esconde.'],
+  ['4.4.90.51.00', 'Obras e instalações', 'Medições sem execução, aditivos sucessivos e obras paradas.'],
+];
+
+export const FONTES_ATENCAO = [
+  ['1751', 'COSIP – Contribuição para o Custeio do Serviço de Iluminação Pública', 'Cobrada na conta de luz e carimbada para iluminação, mas nem sempre é nisso que se gasta.'],
+  ['1540', 'FUNDEB – Impostos e Transferências de Impostos', 'O maior recurso da educação, com mínimo de 70% para a remuneração dos profissionais.'],
+  ['1544', 'Recursos de Precatórios do FUNDEF', 'Valores altos de uma só vez: uso fora da educação e honorários são alvos recorrentes.'],
+  ['1552', 'PNAE – Programa Nacional de Alimentação Escolar', 'Merenda escolar: sobrepreço, cardápio no papel e agricultura familiar de fachada.'],
+  ['1553', 'PNATE – Programa Nacional de Apoio ao Transporte Escolar', 'Risco de a mesma rota ser paga duas vezes, com recurso federal e municipal.'],
+  ['1600', 'SUS Fundo a Fundo – Bloco de Manutenção das Ações e Serviços Públicos de Saúde', 'Repasse federal contínuo da saúde: medicamentos, plantões e serviços terceirizados.'],
+  ['1706', 'Transferência Especial da União (as "emendas Pix")', 'O dinheiro cai na conta do município sem convênio e com rastreio difícil.'],
+  ['1704', 'Compensações Financeiras pela Exploração de Recursos Naturais', 'Royalties e CFEM: receita extra que costuma ir para obras e eventos.'],
+  ['1660', 'Fundo Nacional de Assistência Social – FNAS', 'Benefícios e programas sociais: beneficiários que não existem ou não se enquadram.'],
+  ['1503', 'Apoio financeiro da União por calamidade pública', 'Urgência que justifica compras sem licitação e preços acima do mercado.'],
+  ['1752', 'Recursos Vinculados ao Trânsito', 'Multas arrecadadas com destino definido em lei, e muitas vezes desviado dele.'],
+  ['1755', 'Alienação de Bens/Ativos – Administração Direta', 'Venda de patrimônio público abaixo do valor e uso do dinheiro para custeio.'],
+];

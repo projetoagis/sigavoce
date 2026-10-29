@@ -6,6 +6,7 @@ import {
 import { daCadeia } from '../core/despesa-detalhes.js';
 import { linkDoc, registrarPartes } from './painel-doc.js';
 import { tabela } from './tabela.js';
+import { NATUREZAS_ATENCAO, FONTES_ATENCAO } from '../core/pontos-atencao.js';
 import { desenharGrafo } from './grafo.js';
 import { desenharDespesaDetalhada } from './despesa-detalhes.js';
 
@@ -199,9 +200,8 @@ const URL_RESOLUCAO = 'https://www.tcm.ba.gov.br/wp-content/uploads/2018/12/reso
 
 function montarLembrete() {
   const el = document.createElement('div');
-  el.className = 'iv-lembrete';
-  el.innerHTML = `<button type="button" class="iv-lembrete-btn" aria-expanded="false" aria-controls="iv-lembrete-txt">&#9888; Sobre os dados</button>
-    <div class="iv-lembrete-caixa" id="iv-lembrete-txt" role="note" hidden>
+  el.className = 'iv-bolhas';
+  el.innerHTML = `<div class="iv-lembrete-caixa" id="iv-lembrete-txt" role="note" hidden>
       <b>Atenção</b>
       <p>Os dados exibidos aqui foram coletados das consultas públicas do <b>Tribunal de Contas dos Municípios do
         Estado da Bahia (TCM-BA)</b>. O SIGA VOCÊ apenas organiza e analisa essas informações e não substitui a fonte oficial.</p>
@@ -210,15 +210,62 @@ function montarLembrete() {
         <a href="https://www.tcm.ba.gov.br/" target="_blank" rel="noopener">Abrir o site do TCM-BA</a>
         <button type="button" class="btn-ghost" data-fechar>Fechar</button>
       </div>
+    </div>
+    <div class="iv-bolhas-linha">
+      <button type="button" class="iv-bolha iv-bolha-aviso" data-bolha="sobre" aria-expanded="false" aria-controls="iv-lembrete-txt" aria-label="Sobre os dados">
+        <span aria-hidden="true">&#9888;</span><em>Sobre os dados</em></button>
+      <button type="button" class="iv-bolha" data-bolha="ajuda" aria-label="Ajuda"><span aria-hidden="true">?</span><em>Ajuda</em></button>
     </div>`;
-  const btn = el.querySelector('.iv-lembrete-btn');
+  const btn = el.querySelector('[data-bolha="sobre"]');
   const caixa = el.querySelector('.iv-lembrete-caixa');
-  const abrir = v => { caixa.hidden = !v; btn.setAttribute('aria-expanded', String(v)); };
+  const abrir = v => { caixa.hidden = !v; btn.setAttribute('aria-expanded', String(v)); btn.classList.toggle('aberta', v); };
   btn.addEventListener('click', () => abrir(caixa.hidden));
+  el.querySelector('[data-bolha="ajuda"]').addEventListener('click', () => { abrir(false); abrirAjuda(); });
   el.querySelector('[data-fechar]').addEventListener('click', () => abrir(false));
   el.addEventListener('keydown', e => { if (e.key === 'Escape' && !caixa.hidden) { e.stopPropagation(); abrir(false); btn.focus(); } });
   $('inv-area').appendChild(el);
   return abrir;
+}
+
+const tabelaAtencao = (rotulo, lista) => `<div class="table-wrapper"><table class="dd-tab iv-atencao">
+    <thead><tr><th>Código</th><th>${rotulo}</th><th>Por que olhar</th></tr></thead>
+    <tbody>${lista.map(([cod, desc, motivo]) => `<tr><td class="dd-mono"><b>${escapeHtml(cod)}</b></td>
+      <td>${escapeHtml(desc)}</td><td>${escapeHtml(motivo)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+
+function abrirAjuda() {
+  const fundo = document.createElement('div');
+  fundo.className = 'iv-modal-fundo';
+  fundo.innerHTML = `<div class="iv-modal iv-ajuda" role="dialog" aria-modal="true" aria-labelledby="iv-ajuda-tit">
+      <h3 id="iv-ajuda-tit">Ajuda</h3>
+      <p>Sabemos que fiscalizar as contas do seu município não é tarefa simples, e você não precisa fazer isso sozinho.
+        Conheça um pouco do nosso trabalho e por onde costumamos começar a análise.</p>
+      <h4>Pontos de atenção: onde a fiscalização precisa olhar primeiro</h4>
+      <p>Uma seleção de naturezas de despesa e fontes de recurso que concentram os problemas mais recorrentes nas contas
+        municipais. Códigos e descrições conforme o <b>ementário vigente do TCM-BA (2026)</b> e a tabela de fontes padronizada pela STN.</p>
+      <h5>Naturezas de despesa</h5>
+      ${tabelaAtencao('Natureza da despesa', NATUREZAS_ATENCAO)}
+      <h5>Fontes de recurso</h5>
+      ${tabelaAtencao('Fonte de recurso', FONTES_ATENCAO)}
+      <p class="iv-ajuda-nota">Nos documentos a fonte aparece com 4 dígitos (1751) ou com o complemento (1751.0000).
+        O primeiro dígito indica o exercício: 1 = corrente, 2 = anteriores.</p>
+      <div class="iv-ajuda-contato">
+        <b>Precisa de apoio para fiscalizar o seu município?</b>
+        Fale com a gente: <a href="mailto:atendimento@projetoagis.com">atendimento@projetoagis.com</a>
+      </div>
+      <div class="iv-modal-acoes"><button type="button" class="iv-modal-sim" data-r="ok">Fechar</button></div>
+    </div>`;
+  const fechar = () => {
+    document.removeEventListener('keydown', tecla, true);
+    fundo.remove();
+  };
+  const tecla = e => { if (e.key === 'Escape') { e.stopPropagation(); fechar(); } };
+  fundo.addEventListener('click', e => {
+    if (e.target === fundo || e.target.closest('[data-r]')) fechar();
+  });
+  document.addEventListener('keydown', tecla, true);
+  document.body.appendChild(fundo);
+  fundo.querySelector('[data-r]').focus({ preventScroll: true });
 }
 
 let abrirLembrete = null;
