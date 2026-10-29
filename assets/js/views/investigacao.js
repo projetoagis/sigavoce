@@ -1,6 +1,6 @@
 import { escapeHtml, formatBRL, formatInt } from '../core/format.js';
 import {
-  lerPacote, PacoteError, mascaraDoc, porAnoCompetencia, lerCruzamentos, rotuloAnomes, numeroPP, docsDoPP,
+  lerPacote, PacoteError, mascaraDoc, porAnoClassificacao, lerCruzamentos, rotuloAnomes, numeroPP, docsDoPP,
   classificacoes, indicePP, recortePorPP,
 } from '../core/pacote-parser.js';
 import { daCadeia } from '../core/despesa-detalhes.js';
@@ -36,10 +36,23 @@ const num = v => {
   return isNaN(n) ? 0 : n;
 };
 
+const ICO_PASTA = `<svg class="iv-ico iv-pasta" viewBox="0 0 20 16" aria-hidden="true">
+  <path class="iv-pasta-fundo" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h4.6l1.8 2h8.6A1.5 1.5 0 0 1 19 4.5v9A1.5 1.5 0 0 1 17.5 15h-15A1.5 1.5 0 0 1 1 13.5z"/>
+  <path class="iv-pasta-frente iv-pasta-fechada" d="M1 5h18v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 1 13.5z"/>
+  <path class="iv-pasta-frente iv-pasta-aberta" d="M3.6 6.5h15.6l-2 7.3a1.5 1.5 0 0 1-1.45 1.2H1.7z"/>
+</svg>`;
+const ICO_PDF = `<svg class="iv-ico iv-ico-pdf" viewBox="0 0 16 20" aria-hidden="true">
+  <path class="iv-pdf-folha" d="M2 .5h8.3L15.5 5.7V18a1.5 1.5 0 0 1-1.5 1.5H2A1.5 1.5 0 0 1 .5 18V2A1.5 1.5 0 0 1 2 .5z"/>
+  <path class="iv-pdf-dobra" d="M10.3.5v3.7a1.5 1.5 0 0 0 1.5 1.5h3.7"/>
+  <rect class="iv-pdf-faixa" x="0" y="10" width="13" height="6" rx="1"/>
+  <text x="6.5" y="14.6" text-anchor="middle">PDF</text>
+</svg>`;
+
 function linhaDoc(d) {
   const novo = S.p.novos.has(d.id);
   const nome = d.rotulo || d.arquivo || d.codigo || `Documento ${d.n}`;
   return `<li class="iv-doc${novo ? ' iv-novo' : ''}">
+    ${ICO_PDF}
     <span class="iv-n">DOC ${d.n}</span>
     <span class="iv-doc-corpo">
       <span class="iv-doc-nome">${escapeHtml(nome)}</span>
@@ -59,20 +72,20 @@ function grupoDocs(titulo, docs, { porCompetencia = false, aberto = false } = {}
   const novos = docs.filter(d => S.p.novos.has(d.id)).length;
   let corpo;
   if (porCompetencia) {
-    corpo = porAnoCompetencia(docs).map(a => `
+    corpo = porAnoClassificacao(docs).map(a => `
       <details class="iv-sub">
-        <summary>${escapeHtml(a.ano)} <i>(${a.meses.reduce((s, m) => s + m.docs.length, 0)})</i></summary>
-        ${a.meses.map(m => `
+        <summary>${ICO_PASTA}${escapeHtml(a.ano)} <i>(${a.grupos.reduce((s, g) => s + g.docs.length, 0)})</i></summary>
+        ${a.grupos.map(g => `
           <details class="iv-sub iv-sub2">
-            <summary>${escapeHtml(m.competencia)} <i>(${m.docs.length})</i></summary>
-            ${listaDocs(m.docs)}
+            <summary>${ICO_PASTA}${escapeHtml(g.classificacao)} <i>(${g.docs.length})</i></summary>
+            ${listaDocs(g.docs)}
           </details>`).join('')}
       </details>`).join('');
   } else {
     corpo = listaDocs(docs);
   }
   return `<details class="iv-grupo"${aberto ? ' open' : ''}>
-    <summary>${escapeHtml(titulo)} <i>(${formatInt(docs.length)})</i>${novos ? ` <span class="iv-tag-novo">${novos} novo(s)</span>` : ''}</summary>
+    <summary>${ICO_PASTA}${escapeHtml(titulo)} <i>(${formatInt(docs.length)})</i>${novos ? ` <span class="iv-tag-novo">${novos} novo(s)</span>` : ''}</summary>
     ${corpo}
   </details>`;
 }
@@ -127,7 +140,7 @@ function blocoContratacao(b) {
     <div class="iv-contrato-num">
       <div><span class="iv-rot">Valor contratado</span><b>${brl(b.valor)}</b></div>
       <div><span class="iv-rot">Vigência</span><b>${escapeHtml(vig || '—')}</b></div>
-      <div><span class="iv-rot">Aditivos</span><b>${qtd(b.aditivos)}</b>${b.aditivos_acrescimo ? `<i> + ${brl(b.aditivos_acrescimo)}</i>` : ''}</div>
+      <div><span class="iv-rot">Aditivos (total de arquivos)</span><b>${qtd(b.aditivos)}</b>${b.aditivos_acrescimo ? `<i> + ${brl(b.aditivos_acrescimo)}</i>` : ''}</div>
       <div><span class="iv-rot">Processos de pagamento</span><b>${qtd(b.pagamentos)}</b></div>
     </div>
     ${b.objeto ? `<p class="iv-objeto"><span class="iv-rot">Objeto</span>${escapeHtml(b.objeto)}</p>` : ''}

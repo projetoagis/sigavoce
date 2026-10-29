@@ -134,6 +134,20 @@
 .iv-grupo summary i, .iv-sub summary i { font-style: normal; font-weight: 400; color: var(--text-1); }
 .iv-sub { margin-left: 1rem; }
 .iv-sub > summary { font-weight: 500; font-size: 0.84rem; }
+.iv-grupo > summary, .iv-sub > summary { list-style: none; display: flex; align-items: center; gap: 0.4rem; }
+.iv-grupo > summary::-webkit-details-marker, .iv-sub > summary::-webkit-details-marker { display: none; }
+.iv-ico { flex: none; }
+.iv-pasta { width: 18px; height: 15px; }
+.iv-pasta-fundo { fill: #d9a21b; }
+.iv-pasta-frente { fill: #f4c542; }
+.iv-pasta-aberta { display: none; }
+details[open] > summary > .iv-pasta .iv-pasta-fechada { display: none; }
+details[open] > summary > .iv-pasta .iv-pasta-aberta { display: inline; }
+.iv-ico-pdf { width: 16px; height: 20px; margin-top: 0.05rem; }
+.iv-pdf-folha { fill: #fff; stroke: #9aa3ad; stroke-width: 1; }
+.iv-pdf-dobra { fill: #e6e9ed; stroke: #9aa3ad; stroke-width: 1; stroke-linejoin: round; }
+.iv-pdf-faixa { fill: #d93a32; }
+.iv-ico-pdf text { fill: #fff; font: 700 4.6px/1 Arial, Helvetica, sans-serif; }
 .iv-docs { list-style: none; display: flex; flex-direction: column; gap: 0.25rem; margin: 0.3rem 0 0.5rem; }
 .iv-doc {
   display: flex; align-items: flex-start; gap: 0.6rem;
@@ -161,7 +175,7 @@
 .iv-seg { margin-bottom: 0.75rem; flex-wrap: wrap; }
 .iv-chip {
   display: inline-block; font-size: 0.7rem; margin: 0.1rem 0.25rem 0.1rem 0; padding: 0.05rem 0.45rem;
-  border-radius: 10px; background: var(--neg-bg); color: var(--neg-text); white-space: nowrap;
+  border-radius: 10px; background: var(--bg-2); color: var(--text-1); border: 1px solid var(--border); white-space: nowrap;
 }
 .iv-ocorr { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.82rem; }
 .iv-ocorr a { color: var(--accent); }

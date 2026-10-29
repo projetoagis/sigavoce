@@ -141,24 +141,27 @@ function montar(d) {
   };
 }
 
-export function porAnoCompetencia(lista) {
+export function porAnoClassificacao(lista) {
   const anos = new Map();
   for (const doc of lista) {
     const k = chaveCompetencia(doc.competencia);
     const ano = k ? k.slice(0, 4) : 'Sem competência';
     if (!anos.has(ano)) anos.set(ano, new Map());
-    const meses = anos.get(ano);
-    const comp = doc.competencia || '—';
-    if (!meses.has(comp)) meses.set(comp, []);
-    meses.get(comp).push(doc);
+    const grupos = anos.get(ano);
+    const c = doc.classificacao || '';
+    if (!grupos.has(c)) grupos.set(c, []);
+    grupos.get(c).push(doc);
   }
   return [...anos.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([ano, meses]) => ({
+    .map(([ano, grupos]) => ({
       ano,
-      meses: [...meses.entries()]
-        .sort((a, b) => chaveCompetencia(b[0]).localeCompare(chaveCompetencia(a[0])))
-        .map(([competencia, docs]) => ({ competencia, docs: docs.sort((x, y) => x.n - y.n) })),
+      grupos: [...grupos.entries()]
+        .sort((a, b) => (!a[0] - !b[0]) || a[0].localeCompare(b[0], 'pt-BR'))
+        .map(([c, docs]) => ({
+          classificacao: c || 'Sem classificação',
+          docs: docs.sort((x, y) => chaveCompetencia(y.competencia).localeCompare(chaveCompetencia(x.competencia)) || x.n - y.n),
+        })),
     }));
 }
 
