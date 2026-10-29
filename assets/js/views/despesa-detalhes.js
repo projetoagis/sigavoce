@@ -34,6 +34,56 @@ function gravarEmentario(v) {
   try { localStorage.setItem(CHAVE_EMENTARIO, JSON.stringify(v)); } catch {   }
 }
 
+function saibaEmpenho() {
+  const fundo = document.createElement('div');
+  fundo.className = 'iv-modal-fundo';
+  fundo.innerHTML = `<div class="iv-modal dd-saiba-modal" role="dialog" aria-modal="true" aria-labelledby="dd-saiba-tit">
+      <h3 id="dd-saiba-tit">Como se lê a tabela de empenhos</h3>
+      <p>O <b>empenho</b> é a reserva do dinheiro no orçamento, feita antes da despesa. Todo pagamento sai de um empenho,
+        e um empenho pode ser pago de uma vez ou em várias parcelas.</p>
+      <h4>Tipos de empenho</h4>
+      <dl class="dd-saiba-tipos">
+        <dt>Ordinário</dt><dd>O valor exato é conhecido de antemão e a despesa costuma ser paga de uma só vez.</dd>
+        <dt>Estimativo</dt><dd>O valor exato não dá para saber antes (água, energia, telefone, combustível...).
+          O empenho é uma estimativa e vai sendo pago aos poucos; pode sobrar saldo ou receber reforço.</dd>
+        <dt>Global</dt><dd>O valor total é conhecido, mas a despesa é paga em parcelas (aluguel, serviço contratado por mês...).</dd>
+      </dl>
+      <p class="dd-mudo">O tipo é o que aparece na ficha do pagamento no portal do TCM-BA (Lei 4.320/1964, art. 60).</p>
+      <h4>Como as colunas são calculadas</h4>
+      <ul>
+        <li><b>Empenho</b>: cada linha é um empenho, identificado pelo número + ano do empenho + unidade pagadora
+          (o mesmo número se repete em outros anos e em outras unidades).</li>
+        <li><b>Valor do empenho</b>: o valor informado na ficha do pagamento. Quando vários pagamentos saem do mesmo
+          empenho, vale o valor da primeira ficha.</li>
+        <li><b>Pago (bruto)</b>: a soma, em todos os pagamentos deste contrato que saíram do empenho,
+          do <b>líquido</b> (o que o credor recebeu) + o <b>retido</b> (IRRF, ISS, INSS...).</li>
+        <li><b>Executado</b> = Pago (bruto) ÷ Valor do empenho × 100.</li>
+      </ul>
+      <h4>Cuidados na leitura</h4>
+      <ul>
+        <li>Só entram os pagamentos que estão neste arquivo, deste credor e do município/unidade escolhidos.
+          Se o pacote foi recortado (por ano, competência, unidade ou classificação), o executado fica menor que o real.</li>
+        <li>No <b>estimativo</b> e no <b>global</b>, um percentual abaixo de 100% é normal enquanto as parcelas ainda estão sendo pagas.</li>
+        <li>Acima de 100% a barra fica vermelha: o pago passou do valor que a ficha mostra. Vale conferir no documento
+          se houve reforço ou anulação do empenho.</li>
+        <li>Empenho de um ano pago no ano seguinte (restos a pagar) continua na linha do ano em que foi empenhado.</li>
+        <li>O cartão <b>Empenhado</b>, no alto, soma o valor de cada empenho uma vez só; o executado dele é o bruto pago ÷ esse total.</li>
+      </ul>
+      <div class="iv-modal-acoes"><button type="button" class="iv-modal-sim" data-r="ok">Entendi</button></div>
+    </div>`;
+  const fechar = () => {
+    document.removeEventListener('keydown', tecla, true);
+    fundo.remove();
+  };
+  const tecla = e => { if (e.key === 'Escape') { e.stopPropagation(); fechar(); } };
+  fundo.addEventListener('click', e => {
+    if (e.target === fundo || e.target.closest('[data-r]')) fechar();
+  });
+  document.addEventListener('keydown', tecla, true);
+  document.body.appendChild(fundo);
+  fundo.querySelector('[data-r]').focus();
+}
+
 export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = null, filtro = '' } = {}) {
   const credores = t.credores || [];
   const comDado = credores.find(c => c.pagamentos) || credores.find(c => (t.detalhes || []).some(p => p.documento === c.documento));
@@ -139,59 +189,65 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
   function abaContratos(pag) {
     const grupos = contratos(pag);
     const multi = multiUnidade(pag);
-    return grupos.map(g => {
+    const comEmen = emen('contratos');
+    const cols = multi ? 9 : 8;
+    const linhas = grupos.map(g => {
       const chave = `c:${g.chave}`;
       const aberto = S.abertos.has(chave) || grupos.length === 1;
-      const naturezas = porCodigo(g.lista, 'nat', emen('contratos')).map(p => classifHtml(p, 'nat', emen('contratos')));
-      const fontes = porCodigo(g.lista, 'fonte', emen('contratos')).map(p => classifHtml(p, 'fonte', emen('contratos')));
       const origem = [
         g.dispensas.length ? `Dispensa/Inexigibilidade ${esc(g.dispensas.join(', '))}` : '',
         g.licitacoes.length ? `Licitação ${esc(g.licitacoes.join(', '))}` : '',
-      ].filter(Boolean).join(' · ') || '<span class="dd-mudo">sem licitação nem dispensa informadas</span>';
-      return `<details class="dd-bloco" data-chave="${esc(chave)}"${aberto ? ' open' : ''}>
-        <summary class="dd-bloco-cab">
-          <div class="dd-bloco-tit">
-            <b>${g.contrato ? `Contrato ${esc(g.contrato)}` : 'Sem contrato informado'}</b>
-            <span>${multi ? `<b>${esc(entDe(g.lista[0]))}</b> · ` : ''}${origem}</span>
-          </div>
-          <div class="dd-bloco-num">
-            <span>${g.lista.length} pag.</span>
-            <span>${g.ini ? `${dia(g.ini)} – ${dia(g.fim)}` : ''}</span>
-            <b>${rs(g.liquido)}</b>
-          </div>
-        </summary>
-        <div class="dd-bloco-corpo">
-          <div class="dd-meta">
-            <div><span>Unidade · órgão(s)</span>${esc(entDe(g.lista[0]))} <span class="dd-mudo">(${esc(munDe(g.lista[0]))})</span><br>${g.orgaos.map(esc).join('<br>') || '—'}</div>
-            <div><span>Natureza(s) da despesa</span>${naturezas.join('<br>') || '—'}</div>
-            <div><span>Fonte(s) de recurso</span>${fontes.join('<br>') || '—'}</div>
-            <div><span>Bruto · retido</span>${rs(g.liquido + g.retido)} · ${rs(g.retido)}<div class="dd-meta-emen">${caixaEmen('contratos')}</div></div>
-          </div>
-          <div class="dd-duas">
-            <div>
-              <h4>Por ano do pagamento</h4>
-              <div class="table-wrapper"><table class="dd-tab"><thead><tr><th>Ano</th><th class="tb-num">Pag.</th><th class="tb-num">Líquido</th><th class="tb-num">Retido</th><th class="tb-num">Bruto</th></tr></thead>
-                <tbody>${g.anos.map(o => `<tr><td>${esc(o.ano)}</td><td class="tb-num">${o.n}</td><td class="tb-num">${rs(o.liquido)}</td>
-                  <td class="tb-num">${rs(o.retido)}</td><td class="tb-num"><b>${rs(o.liquido + o.retido)}</b></td></tr>`).join('')}</tbody>
-                <tfoot><tr><td>Total</td><td class="tb-num">${g.lista.length}</td><td class="tb-num">${rs(g.liquido)}</td><td class="tb-num">${rs(g.retido)}</td><td class="tb-num">${rs(g.liquido + g.retido)}</td></tr></tfoot>
-              </table></div>
-            </div>
-            <div>
-              <h4>Empenhos</h4>
-              <div class="table-wrapper"><table class="dd-tab"><thead><tr><th>Empenho</th><th>Tipo</th><th class="tb-num">Valor</th><th class="tb-num">Pago (bruto)</th><th class="tb-num">Executado</th></tr></thead>
-                <tbody>${g.empenhos.map(e => {
-                  const fr = e.valor ? e.bruto / e.valor : 0;
-                  return `<tr title="${esc(e.orgao || '')}"><td><b>${esc(e.empenho)}</b> <span class="dd-mudo">${esc(dia(e.data))}</span></td>
-                    <td>${esc(e.tipo || '—')}</td><td class="tb-num">${rs(e.valor)}</td><td class="tb-num">${rs(e.bruto)}</td>
-                    <td class="tb-num">${barra(fr, fr > 1.0001)} ${pct(e.bruto, e.valor)}</td></tr>`;
-                }).join('')}</tbody>
-              </table></div>
-            </div>
-          </div>
-          <button type="button" class="btn-ghost" data-acao="ver-pag" data-contrato="${esc(g.contrato)}" data-cuni="${esc(g.codUnidade)}">Ver os ${g.lista.length} pagamento(s) deste contrato</button>
-        </div>
-      </details>`;
-    }).join('') + `<p class="dd-mudo dd-dica">${grupos.length} contrato(s)${grupos.some(g => !g.contrato) ? ' (inclui os pagamentos sem contrato informado)' : ''}${multi ? ', separados por unidade pagadora' : ''}. Clique no cabeçalho para abrir.</p>`;
+      ].filter(Boolean).join('<br>') || '<span class="dd-mudo">—</span>';
+      return `<tr class="dd-clicavel dd-c-l${aberto ? ' aberto' : ''}" data-chave="${esc(chave)}">
+          <td><span class="dd-seta">▸</span> <b>${g.contrato ? esc(g.contrato) : 'Sem contrato informado'}</b></td>
+          ${multi ? `<td>${esc(entDe(g.lista[0]))}</td>` : ''}
+          <td>${origem}</td>
+          <td class="tb-num">${g.lista.length}</td>
+          <td class="dd-pct">${g.ini ? `${esc(dia(g.ini))} – ${esc(dia(g.fim))}` : '—'}</td>
+          <td class="tb-num"><b>${rs(g.liquido)}</b></td>
+          <td class="tb-num">${g.retido ? rs(g.retido) : '<span class="dd-mudo">—</span>'}</td>
+          <td class="tb-num">${rs(g.liquido + g.retido)}</td>
+          <td class="tb-num">${g.empenhos.length}</td>
+        </tr>${aberto ? `<tr class="dd-c-det"><td colspan="${cols}">${detalheContrato(g, comEmen)}</td></tr>` : ''}`;
+    }).join('');
+    const liq = soma(grupos, g => g.liquido);
+    const ret = soma(grupos, g => g.retido);
+    return `<div class="table-wrapper"><table class="dd-tab dd-contratos">
+        <thead><tr><th>Contrato</th>${multi ? '<th>Unidade pagadora</th>' : ''}<th>Licitação · dispensa</th><th class="tb-num">Pag.</th><th>Período</th>
+          <th class="tb-num">Líquido</th><th class="tb-num">Retido</th><th class="tb-num">Bruto</th><th class="tb-num">Empenhos</th></tr></thead>
+        <tbody>${linhas}</tbody>
+        <tfoot><tr><td colspan="${multi ? 3 : 2}">Total · ${grupos.length} contrato(s)</td><td class="tb-num">${pag.length}</td><td></td>
+          <td class="tb-num">${rs(liq)}</td><td class="tb-num">${rs(ret)}</td><td class="tb-num">${rs(liq + ret)}</td><td></td></tr></tfoot>
+      </table></div>
+      <p class="dd-mudo dd-dica">${grupos.some(g => !g.contrato) ? 'Inclui os pagamentos sem contrato informado. ' : ''}${multi ? 'Separados por unidade pagadora. ' : ''}Clique na linha para ver ano a ano e os empenhos.</p>`;
+  }
+
+  function detalheContrato(g, comEmen) {
+    const naturezas = porCodigo(g.lista, 'nat', comEmen).map(p => classifHtml(p, 'nat', comEmen));
+    const fontes = porCodigo(g.lista, 'fonte', comEmen).map(p => classifHtml(p, 'fonte', comEmen));
+    return `<h4 class="dd-h4 dd-h4-emen">Classificação ${caixaEmen('contratos')}</h4>
+      <div class="table-wrapper"><table class="dd-tab dd-chave-valor"><tbody>
+        <tr><th>Unidade pagadora</th><td>${esc(entDe(g.lista[0]))} <span class="dd-mudo">(${esc(munDe(g.lista[0]))})</span></td></tr>
+        <tr><th>Órgão(s)</th><td>${g.orgaos.map(esc).join('<br>') || '—'}</td></tr>
+        <tr><th>Natureza(s) da despesa</th><td>${naturezas.join('<br>') || '—'}</td></tr>
+        <tr><th>Fonte(s) de recurso</th><td>${fontes.join('<br>') || '—'}</td></tr>
+      </tbody></table></div>
+      <h4 class="dd-h4">Por ano do pagamento</h4>
+      <div class="table-wrapper"><table class="dd-tab"><thead><tr><th>Ano</th><th class="tb-num">Pag.</th><th class="tb-num">Líquido</th><th class="tb-num">Retido</th><th class="tb-num">Bruto</th></tr></thead>
+        <tbody>${g.anos.map(o => `<tr><td>${esc(o.ano)}</td><td class="tb-num">${o.n}</td><td class="tb-num">${rs(o.liquido)}</td>
+          <td class="tb-num">${rs(o.retido)}</td><td class="tb-num"><b>${rs(o.liquido + o.retido)}</b></td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>Total</td><td class="tb-num">${g.lista.length}</td><td class="tb-num">${rs(g.liquido)}</td><td class="tb-num">${rs(g.retido)}</td><td class="tb-num">${rs(g.liquido + g.retido)}</td></tr></tfoot>
+      </table></div>
+      <h4 class="dd-h4 dd-h4-emen">Empenhos <button type="button" class="btn-ghost dd-saiba" data-acao="saiba-empenho">Saiba mais</button></h4>
+      <div class="table-wrapper"><table class="dd-tab"><thead><tr><th>Empenho</th><th>Data</th><th>Tipo</th><th>Órgão</th><th class="tb-num">Pag.</th><th class="tb-num">Valor do empenho</th><th class="tb-num">Pago (bruto)</th><th class="tb-num">Executado</th></tr></thead>
+        <tbody>${g.empenhos.map(e => {
+          const fr = e.valor ? e.bruto / e.valor : 0;
+          return `<tr><td class="dd-mono"><b>${esc(e.empenho)}</b></td><td>${esc(dia(e.data))}</td>
+            <td>${txt(e.tipo)}</td><td>${txt(e.orgao)}</td><td class="tb-num">${e.n}</td><td class="tb-num">${rs(e.valor)}</td><td class="tb-num">${rs(e.bruto)}</td>
+            <td class="tb-num dd-pct">${barra(fr, fr > 1.0001)} ${pct(e.bruto, e.valor)}</td></tr>`;
+        }).join('')}</tbody>
+      </table></div>
+      <button type="button" class="btn-ghost dd-ver-pag" data-acao="ver-pag" data-contrato="${esc(g.contrato)}" data-cuni="${esc(g.codUnidade)}">Ver os ${g.lista.length} pagamento(s) deste contrato</button>`;
   }
 
   function indices(ret, nfs) {
@@ -401,19 +457,21 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
     S.grupos = new Map();
     const tot = soma(pag, p => num(p.valor));
     const multi = multiUnidade(pag);
+    const cab = () => `<thead><tr><th>Descrição</th><th class="tb-num">Pag.</th><th class="tb-num">Líquido</th><th class="tb-num">% do líquido</th></tr></thead>`;
     const simples = (titulo, campo) => `<div class="dd-quadro"><h4>${titulo}</h4>
-      <table class="dd-tab"><tbody>${quadro(pag, campo).map(q => linhaQuadro(titulo, esc(q.rotulo), q.rotulo, q.lista, tot)).join('')}</tbody></table></div>`;
+      <div class="table-wrapper"><table class="dd-tab">${cab()}<tbody>${quadro(pag, campo).map(q => linhaQuadro(titulo, esc(q.rotulo), q.rotulo, q.lista, tot)).join('')}</tbody></table></div></div>`;
     const porCod = (titulo, qual, lugar) => {
       const com = emen(lugar);
       return `<div class="dd-quadro"><h4 class="dd-h4-emen">${titulo} ${caixaEmen(lugar)}</h4>
-        <table class="dd-tab"><tbody>${quadroCodigo(pag, qual, com).map(o => {
+        <div class="table-wrapper"><table class="dd-tab">${cab()}<tbody>${quadroCodigo(pag, qual, com).map(o => {
           const rot = com ? classifHtml(o.ex, qual, true) : txt(o.maisUsada || '(não informado)');
           const variantes = o.nEscritas > 1 ? ` <span class="dd-tag" title="${esc(`Escrito de ${o.nEscritas} jeitos:\n${o.variantes.join('\n')}`)}">${o.nEscritas} escritas</span>` : '';
           const anos = o.mudouSentido ? ` <span class="dd-mudo">(${esc(o.anos.join(', '))})</span>` : '';
           return linhaQuadro(titulo, `${rot}${variantes}${anos}`, o.rotulo, o.lista, tot);
-        }).join('')}</tbody></table></div>`;
+        }).join('')}</tbody></table></div></div>`;
     };
-    return `<div class="dd-quadros">
+    return `<p class="dd-mudo dd-dica">Clique numa linha para ver os pagamentos dela e exportar em CSV.</p>
+      <div class="dd-quadros">
       ${porCod('Natureza da despesa (TCM)', 'nat', 'q_nat')}
       ${porCod('Fonte de recurso (TCM)', 'fonte', 'q_fonte')}
       ${simples('Órgão', p => orgao(p, multi))}
@@ -488,7 +546,7 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
 
   raiz.addEventListener('click', e => {
     if (e.target.closest('a[data-pdf]')) return;
-    const b = e.target.closest('[data-doc], [data-aba], [data-acao], .dd-linha, .dd-q-l, .dd-dist-l');
+    const b = e.target.closest('[data-doc], [data-aba], [data-acao], .dd-linha, .dd-c-l, .dd-q-l, .dd-dist-l');
     if (!b || !raiz.contains(b)) return;
     if (b.dataset.doc) {
       S.doc = b.dataset.doc;
@@ -503,6 +561,7 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
       else if (a === 'local-cadeia') novoLocal(munCadeia, '');
       else if (a === 'limpar') { S.f = FILTRO_VAZIO(); desenhar(); }
       else if (a === 'mais') { S.mostrar += PASSO; desenhar(); }
+      else if (a === 'saiba-empenho') saibaEmpenho();
       else if (a === 'ver-pag') {
         S.aba = 'pagamentos';
         S.f = { ...FILTRO_VAZIO(), contrato: b.dataset.contrato || '(sem)', cuni: b.dataset.cuni || '' };
@@ -531,6 +590,11 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
         const p = S.pagAtual.find(x => String(x.id) === b.dataset.id);
         if (p) b.insertAdjacentHTML('afterend', fichaTr(p));
       }
+    } else if (b.classList.contains('dd-c-l')) {
+      if (e.target.closest('a, input, label')) return;
+      const k = b.dataset.chave;
+      if (S.abertos.has(k)) S.abertos.delete(k); else S.abertos.add(k);
+      desenhar();
     } else if (b.classList.contains('dd-q-l')) {
       const g = S.grupos.get(b.dataset.g);
       if (!g) return;
@@ -573,12 +637,6 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
       if (nova) { nova.focus(); nova.setSelectionRange(nova.value.length, nova.value.length); }
     }, 250);
   });
-
-  raiz.addEventListener('toggle', e => {
-    const d = e.target;
-    if (!d.classList || !d.classList.contains('dd-bloco')) return;
-    if (d.open) S.abertos.add(d.dataset.chave); else S.abertos.delete(d.dataset.chave);
-  }, true);
 
   desenhar();
 }
