@@ -3,7 +3,7 @@ import {
   lerPacote, PacoteError, mascaraDoc, porAnoCompetencia, lerCruzamentos, rotuloAnomes, numeroPP, docsDoPP,
   classificacoes, indicePP, recortePorPP,
 } from '../core/pacote-parser.js';
-import { munChave, munDe } from '../core/despesa-detalhes.js';
+import { daCadeia } from '../core/despesa-detalhes.js';
 import { linkDoc, registrarPartes } from './painel-doc.js';
 import { tabela } from './tabela.js';
 import { desenharGrafo } from './grafo.js';
@@ -333,8 +333,7 @@ function abaDespesa(el) {
   const todos = S.p.bruto.tcm_detalhes || {};
   let t = todos;
   if (S.classif) {
-    const mun = munChave(S.p.cadeia.municipio || '');
-    t = recortePorPP(todos, indicePP(S.p.docs.filter(casaClassif)), l => !mun || munChave(munDe(l)) === mun);
+    t = recortePorPP(todos, indicePP(S.p.docs.filter(casaClassif)), l => daCadeia(l, S.p.cadeia.municipio || ''));
   }
   el.innerHTML = `${avisoFiltro(`${formatInt((t.detalhes || []).length)} de ${formatInt((todos.detalhes || []).length)} pagamentos,
     casados pelo número do processo de pagamento (mesmo ano) com os arquivos desta classificação`)}

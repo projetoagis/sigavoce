@@ -2,7 +2,7 @@ import { escapeHtml as esc, formatBRL, formatInt } from '../core/format.js';
 import { linkPP } from './painel-doc.js';
 import { mascaraDoc } from '../core/pacote-parser.js';
 import {
-  num, bruto, soma, dia, ano, doCredor, municipios, munChave, munDe, entDe, orgao, multiUnidade,
+  num, bruto, soma, dia, ano, doCredor, municipios, munChave, munDe, entDe, daCadeia, orgao, multiUnidade,
   chavePP, resumo, CAMPO_CLASSIF, ementario, classifTexto, difereDoEmentario, contratos, porCodigo,
   filtrar, ordemPagamento, retencoesPorConta, quadro, quadroCodigo, quadroUnidade, CODIGO_DE, outroEmitente,
   COLUNAS_CSV, linhasCsv,
@@ -115,7 +115,8 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
   const munCadeia = munChave(municipio);
 
   const pp = (numero, linha) => {
-    if (!docsDoPP || !numero || (munCadeia && munChave(munDe(linha)) !== munCadeia)) return esc(numero);
+    if (!docsDoPP || !numero) return esc(numero);
+    if (!daCadeia(linha, municipio)) return `<span title="${esc(`Só informativo: o documento só abre para pagamentos da Prefeitura de ${municipio || 'município da cadeia'}`)}">${esc(numero)}</span>`;
     return linkPP(numero, docsDoPP(numero, linha.data || linha.data_retencao));
   };
 

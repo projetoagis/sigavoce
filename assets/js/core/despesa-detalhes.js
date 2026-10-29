@@ -33,6 +33,10 @@ export function munDe(p) {
 
 export const entDe = p => p.entidade || p.unidade || `unidade ${p.codigo_unidade}`;
 
+export const ehPrefeitura = p => /^PREFEITURA\b/.test(munChave(p.entidade || p.unidade || ''));
+
+export const daCadeia = (p, municipio) => !!munChave(municipio) && munChave(munDe(p)) === munChave(municipio) && ehPrefeitura(p);
+
 export function orgao(p, multi) {
   const o = p.orgao || p.cd_orgao || '';
   return multi && o ? `${o} · ${entDe(p)}` : o;
