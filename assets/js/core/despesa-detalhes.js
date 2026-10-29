@@ -239,6 +239,34 @@ export function quadro(pag, campo) {
     .sort((a, b) => b.v - a.v);
 }
 
+export const textoNormal = v => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+
+export const CODIGO_DE = {
+  orgao: p => codigo(p.orgao || p.cd_orgao),
+  acao: p => codigo(p.acao),
+  funcao: p => (codigo(p.funcao) && codigo(p.subfuncao) ? `${codigo(p.funcao)}.${codigo(p.subfuncao)}` : ''),
+};
+
+export function quadroUnidade(pag, campo, cod, porUnidade = true) {
+  const m = new Map();
+  for (const p of pag) {
+    const texto = (typeof campo === 'function' ? campo(p) : p[campo]) || '';
+    const k = `${porUnidade ? p.codigo_unidade || '' : ''}|${cod(p) || textoNormal(texto) || '(não informado)'}`;
+    const o = m.get(k) || { k, lista: [], v: 0, escritas: new Map(), ent: entDe(p), mun: munDe(p) };
+    o.lista.push(p);
+    o.v += num(p.valor);
+    o.escritas.set(texto, (o.escritas.get(texto) || 0) + 1);
+    m.set(k, o);
+  }
+  return [...m.values()].sort((a, b) => b.v - a.v).map(o => ({
+    ...o,
+    rotulo: [...o.escritas.entries()].sort((a, b) => b[1] - a[1])[0][0] || '(não informado)',
+    nEscritas: o.escritas.size,
+    variantes: [...o.escritas.keys()],
+  }));
+}
+
 export function quadroCodigo(pag, qual, comEmentario) {
   const m = new Map();
   for (const p of pag) {

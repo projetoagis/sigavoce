@@ -297,6 +297,8 @@
 .dd-ficha h5 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 0.3rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .dd-ficha .dd-larga { grid-column: 1 / -1; }
 
+.dd-agrupar { display: flex; gap: 0.4rem 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 0.5rem; padding: 0.5rem 0.7rem; border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: 6px; background: var(--bg-1); }
+.dd-agrupar p { flex: 1 1 320px; font-size: 0.78rem; line-height: 1.5; margin: 0; }
 .dd-quadros { display: flex; flex-direction: column; gap: 0.2rem; }
 .dd-quadro { min-width: 0; }
 .dd-quadro h4 { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }

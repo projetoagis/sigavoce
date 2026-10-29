@@ -4,7 +4,7 @@ import { mascaraDoc } from '../core/pacote-parser.js';
 import {
   num, bruto, soma, dia, ano, doCredor, municipios, munChave, munDe, entDe, orgao, multiUnidade,
   chavePP, resumo, CAMPO_CLASSIF, ementario, classifTexto, difereDoEmentario, contratos, porCodigo,
-  filtrar, ordemPagamento, retencoesPorConta, quadro, quadroCodigo, outroEmitente,
+  filtrar, ordemPagamento, retencoesPorConta, quadro, quadroCodigo, quadroUnidade, CODIGO_DE, outroEmitente,
   COLUNAS_CSV, linhasCsv,
 } from '../core/despesa-detalhes.js';
 import { downloadCSV } from './download.js';
@@ -18,6 +18,7 @@ const ABAS = [
 ];
 const PASSO = 200;
 const CHAVE_EMENTARIO = 'sigavoce-despesa-ementario';
+const CHAVE_AGRUPAR = 'sigavoce-despesa-agrupar';
 const FILTRO_VAZIO = () => ({ ano: '', contrato: '', orgao: '', busca: '', cuni: '' });
 
 const rs = v => (v == null || v === '' || !Number.isFinite(Number(v)) ? '—' : formatBRL(Number(v)));
@@ -29,6 +30,12 @@ const nomeArq = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 function lerEmentario() {
   try { return JSON.parse(localStorage.getItem(CHAVE_EMENTARIO) || '{}') || {}; } catch { return {}; }
+}
+function lerAgrupar() {
+  try { return localStorage.getItem(CHAVE_AGRUPAR) === 'codigo' ? 'codigo' : 'portal'; } catch { return 'portal'; }
+}
+function gravarAgrupar(v) {
+  try { localStorage.setItem(CHAVE_AGRUPAR, v); } catch {   }
 }
 function gravarEmentario(v) {
   try { localStorage.setItem(CHAVE_EMENTARIO, JSON.stringify(v)); } catch {   }
@@ -94,6 +101,7 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
     mostrar: PASSO,
     abertos: new Set(),
     emen: lerEmentario(),
+    agrupar: lerAgrupar(),
     mun: null,
     uni: '',
     munAviso: '',
@@ -460,6 +468,36 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
     const cab = () => `<thead><tr><th>Descrição</th><th class="tb-num">Pag.</th><th class="tb-num">Líquido</th><th class="tb-num">% do líquido</th></tr></thead>`;
     const simples = (titulo, campo) => `<div class="dd-quadro"><h4>${titulo}</h4>
       <div class="table-wrapper"><table class="dd-tab">${cab()}<tbody>${quadro(pag, campo).map(q => linhaQuadro(titulo, esc(q.rotulo), q.rotulo, q.lista, tot)).join('')}</tbody></table></div></div>`;
+    const porUnidade = [
+      ['Órgão', p => orgao(p, multi), p => p.orgao || p.cd_orgao, CODIGO_DE.orgao, true],
+      ['Ação', 'acao', 'acao', CODIGO_DE.acao, true],
+      ['Função / subfunção', p => [p.funcao, p.subfuncao].filter(Boolean).join(' · '), p => [p.funcao, p.subfuncao].filter(Boolean).join(' · '), CODIGO_DE.funcao, false],
+    ].map(([titulo, campoPortal, campo, cod, porUni]) => {
+      const juntos = quadroUnidade(pag, campo, cod, porUni);
+      return { titulo, campoPortal, juntos, porUni, sobra: quadro(pag, campoPortal).length - juntos.length };
+    });
+    const agrupado = ({ titulo, campoPortal, juntos, porUni }) => {
+      if (S.agrupar !== 'codigo') return simples(titulo, campoPortal);
+      return `<div class="dd-quadro"><h4>${titulo}</h4>
+        <div class="table-wrapper"><table class="dd-tab">${cab()}<tbody>${juntos.map(o => {
+          const variantes = o.nEscritas > 1 ? ` <span class="dd-tag mudou" title="${esc(`Escrito de ${o.nEscritas} jeitos:\n${o.variantes.join('\n')}`)}">${o.nEscritas} escritas</span>` : '';
+          const uni = multi && porUni ? ` <span class="dd-mudo">· ${esc(o.ent)} (${esc(o.mun)})</span>` : '';
+          return linhaQuadro(titulo, `${txt(o.rotulo)}${variantes}${uni}`, multi && porUni ? `${o.rotulo} ${o.ent}` : o.rotulo, o.lista, tot);
+        }).join('')}</tbody></table></div></div>`;
+    };
+    const repetidos = porUnidade.filter(q => q.sobra > 0);
+    const [qOrgao, qAcao, qFuncao] = porUnidade;
+    const escolha = `<div class="dd-agrupar">
+        <label class="dd-f"><span>Órgão, ação e função/subfunção</span><select class="filter-select" data-sel="agrupar">
+          <option value="portal"${S.agrupar === 'portal' ? ' selected' : ''}>Como está no portal do TCM-BA</option>
+          <option value="codigo"${S.agrupar === 'codigo' ? ' selected' : ''}>Pelo código + unidade pagadora</option>
+        </select></label>
+        <p class="dd-mudo">${repetidos.length
+          ? `${S.agrupar === 'codigo' ? 'Juntados' : '<b class="dd-ruim">Atenção:</b> aparecem repetidos'} por diferença de escrita (acento, abreviação):
+            ${repetidos.map(q => `<b>${q.titulo}</b> ${q.sobra} item(ns)`).join(' · ')}.`
+          : 'Nenhum item repetido por diferença de escrita neste credor.'}
+          Órgão e ação são numerados por cada prefeitura, câmara ou fundo, por isso o código só vale junto com a unidade pagadora; função e subfunção seguem a tabela nacional e são juntadas só pelo código.</p>
+      </div>`;
     const porCod = (titulo, qual, lugar) => {
       const com = emen(lugar);
       return `<div class="dd-quadro"><h4 class="dd-h4-emen">${titulo} ${caixaEmen(lugar)}</h4>
@@ -470,14 +508,14 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
           return linhaQuadro(titulo, `${rot}${variantes}${anos}`, o.rotulo, o.lista, tot);
         }).join('')}</tbody></table></div></div>`;
     };
-    return `<p class="dd-mudo dd-dica">Clique numa linha para ver os pagamentos dela e exportar em CSV.</p>
+    return `${escolha}<p class="dd-mudo dd-dica">Clique numa linha para ver os pagamentos dela e exportar em CSV.</p>
       <div class="dd-quadros">
       ${porCod('Natureza da despesa (TCM)', 'nat', 'q_nat')}
       ${porCod('Fonte de recurso (TCM)', 'fonte', 'q_fonte')}
-      ${simples('Órgão', p => orgao(p, multi))}
+      ${agrupado(qOrgao)}
       ${multi ? simples('Unidade pagadora', p => `${entDe(p)} (${munDe(p)})`) : ''}
-      ${simples('Ação', 'acao')}
-      ${simples('Função / subfunção', p => [p.funcao, p.subfuncao].filter(Boolean).join(' · '))}
+      ${agrupado(qAcao)}
+      ${agrupado(qFuncao)}
       ${simples('Conta bancária pagadora', 'conta_bancaria')}
       ${simples('Tipo de documento', p => String(p.tipo_documento || '').replace(/,?\s*n[ºo°]\s*\d+.*$/i, '').trim())}
       ${simples('Tipo de empenho', 'tipo_empenho')}
@@ -612,6 +650,10 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
     if (el2.dataset.emen) {
       S.emen[el2.dataset.emen] = el2.checked;
       gravarEmentario(S.emen);
+      desenhar();
+    } else if (el2.dataset.sel === 'agrupar') {
+      S.agrupar = el2.value === 'codigo' ? 'codigo' : 'portal';
+      gravarAgrupar(S.agrupar);
       desenhar();
     } else if (el2.dataset.sel === 'mun') {
       novoLocal(el2.value, '');
