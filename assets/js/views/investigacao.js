@@ -197,6 +197,32 @@ function aplicarClassif(v) {
 
 const URL_RESOLUCAO = 'https://www.tcm.ba.gov.br/wp-content/uploads/2018/12/resolucao-1379-2018-1.pdf';
 
+function montarLembrete() {
+  const el = document.createElement('div');
+  el.className = 'iv-lembrete';
+  el.innerHTML = `<button type="button" class="iv-lembrete-btn" aria-expanded="false" aria-controls="iv-lembrete-txt">&#9888; Sobre os dados</button>
+    <div class="iv-lembrete-caixa" id="iv-lembrete-txt" role="note" hidden>
+      <b>Atenção</b>
+      <p>Os dados exibidos aqui foram coletados das consultas públicas do <b>Tribunal de Contas dos Municípios do
+        Estado da Bahia (TCM-BA)</b>. O SIGA VOCÊ apenas organiza e analisa essas informações e não substitui a fonte oficial.</p>
+      <p>Antes de tomar qualquer decisão, confira os dados no site oficial do TCM-BA.</p>
+      <div class="iv-lembrete-acoes">
+        <a href="https://www.tcm.ba.gov.br/" target="_blank" rel="noopener">Abrir o site do TCM-BA</a>
+        <button type="button" class="btn-ghost" data-fechar>Fechar</button>
+      </div>
+    </div>`;
+  const btn = el.querySelector('.iv-lembrete-btn');
+  const caixa = el.querySelector('.iv-lembrete-caixa');
+  const abrir = v => { caixa.hidden = !v; btn.setAttribute('aria-expanded', String(v)); };
+  btn.addEventListener('click', () => abrir(caixa.hidden));
+  el.querySelector('[data-fechar]').addEventListener('click', () => abrir(false));
+  el.addEventListener('keydown', e => { if (e.key === 'Escape' && !caixa.hidden) { e.stopPropagation(); abrir(false); btn.focus(); } });
+  $('inv-area').appendChild(el);
+  return abrir;
+}
+
+let abrirLembrete = null;
+
 function orientacaoResolucao() {
   const fundo = document.createElement('div');
   fundo.className = 'iv-modal-fundo';
@@ -557,6 +583,7 @@ async function abrirArquivo(file) {
   $('inv-area').hidden = false;
   desenhar();
   window.scrollTo({ top: 0 });
+  if (abrirLembrete) abrirLembrete(false);
   orientacaoResolucao();
 }
 
@@ -572,6 +599,7 @@ export function resetInvestigacao() {
 }
 
 export function initInvestigacao() {
+  abrirLembrete = montarLembrete();
   $('inv-area').addEventListener('click', e => {
     if (e.target.closest('[data-limpar-classif]')) aplicarClassif('');
   });
