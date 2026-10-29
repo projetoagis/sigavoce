@@ -195,6 +195,35 @@ function aplicarClassif(v) {
   desenhar();
 }
 
+const URL_RESOLUCAO = 'https://www.tcm.ba.gov.br/wp-content/uploads/2018/12/resolucao-1379-2018-1.pdf';
+
+function orientacaoResolucao() {
+  const fundo = document.createElement('div');
+  fundo.className = 'iv-modal-fundo';
+  fundo.innerHTML = `<div class="iv-modal" role="dialog" aria-modal="true" aria-labelledby="iv-res-tit" aria-describedby="iv-res-txt">
+      <h3 id="iv-res-tit">Prestação de Contas de Gestão</h3>
+      <div id="iv-res-txt">
+        <p>Saiba mais sobre a Prestação de Contas de Gestão na <b>Resolução TCM-BA nº 1.379/2018</b>.</p>
+        <p>Consulte-a também se tiver dúvidas sobre as classificações oficiais.</p>
+      </div>
+      <div class="iv-modal-acoes">
+        <a class="btn-ghost iv-res-link" href="${URL_RESOLUCAO}" target="_blank" rel="noopener">Abrir a resolução (PDF)</a>
+        <button type="button" class="iv-modal-sim" data-r="ok">Entendi</button>
+      </div>
+    </div>`;
+  const fechar = () => {
+    document.removeEventListener('keydown', tecla, true);
+    fundo.remove();
+  };
+  const tecla = e => { if (e.key === 'Escape') { e.stopPropagation(); fechar(); } };
+  fundo.addEventListener('click', e => {
+    if (e.target === fundo || e.target.closest('[data-r]')) fechar();
+  });
+  document.addEventListener('keydown', tecla, true);
+  document.body.appendChild(fundo);
+  fundo.querySelector('[data-r]').focus();
+}
+
 function confirmarClassif(nome, aceitar, descartar) {
   const fundo = document.createElement('div');
   fundo.className = 'iv-modal-fundo';
@@ -482,7 +511,10 @@ function desenhar() {
         <h2>${escapeHtml(p.cadeia.titulo || 'Pacote de investigação')}</h2>
         <p class="iv-doc-meta">Versão ${escapeHtml(p.pacote.versao || 1)}${p.pacote.nota ? ` · ${escapeHtml(p.pacote.nota)}` : ''} · gerado em ${escapeHtml(dataBR(p.gerado_em))}</p>
       </div>
-      <button type="button" class="btn-reset" id="inv-outro">&#8634; Abrir outro arquivo</button>
+      <div class="iv-cab-botoes">
+        <button type="button" class="btn-ghost" id="inv-resolucao" title="Prestação de Contas de Gestão e classificações oficiais">Resolução TCM 1.379/2018</button>
+        <button type="button" class="btn-reset" id="inv-outro">&#8634; Abrir outro arquivo</button>
+      </div>
     </div>
     ${clienteHtml(p.cliente)}
     ${novidadesHtml(p)}
@@ -499,6 +531,7 @@ function desenhar() {
     <nav class="iv-abas" role="tablist">${abas.map(a => `<button type="button" role="tab" data-aba="${a.id}" aria-selected="${a.id === S.aba}">${a.nome}${
       S.classif && ABAS_COM_FILTRO.has(a.id) ? ' <span class="iv-aba-filtro" title="Filtro de classificação ativo nesta aba">filtrado</span>' : ''}</button>`).join('')}</nav>`;
   $('inv-outro').addEventListener('click', () => { resetInvestigacao(); $('inv-input').click(); });
+  $('inv-resolucao').addEventListener('click', orientacaoResolucao);
   $('inv-cab').querySelectorAll('[data-aba]').forEach(b => b.addEventListener('click', () => { S.aba = b.dataset.aba; desenhar(); }));
   ABAS.find(a => a.id === S.aba).fn($('inv-corpo'));
 }
@@ -525,6 +558,7 @@ async function abrirArquivo(file) {
   $('inv-area').hidden = false;
   desenhar();
   window.scrollTo({ top: 0 });
+  orientacaoResolucao();
 }
 
 export function resetInvestigacao() {
