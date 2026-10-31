@@ -113,7 +113,7 @@ export function parseFolhaMatrix(matrix) {
   const resumo    = parseRodape(matrix.slice(r).map(row => (row || []).map(cell)));
   resumo.pessoas  = declaredCount;
 
-  return { headers, rows, currencyCols, detected, declaredCount, resumo };
+  return { headers, rows, currencyCols, detected, titulo: titleLine, declaredCount, resumo };
 }
 
 export function parseRodape(tail) {

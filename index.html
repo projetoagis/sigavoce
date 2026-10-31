@@ -301,9 +301,9 @@
         <div class="upload-zone" id="folha-drop-zone" role="button" tabindex="0" aria-label="Selecionar arquivos XLS da folha de pagamento">
           <span class="upload-icon">&#8659;</span>
           <span class="upload-label">Clique para selecionar ou arraste o(s) arquivo(s) aqui</span>
-          <span class="upload-hint">Somente arquivos .xls da seção Pessoal do TCM-BA</span>
+          <span class="upload-hint">Arquivos .xls da seção Pessoal do TCM-BA ou um projeto .csv salvo aqui</span>
         </div>
-        <input type="file" id="folha-input" accept=".xls,.xlsx" multiple />
+        <input type="file" id="folha-input" accept=".xls,.xlsx,.csv" multiple />
       </section>
 
       <section id="folha-analysis">
@@ -315,7 +315,8 @@
           </div>
           <div class="analysis-actions">
             <button class="btn-add-file" id="folha-btn-add">&#43; Adicionar planilhas</button>
-            <button class="btn-reset" id="folha-btn-export" title="Baixar o resultado filtrado como CSV">&#8681; Exportar CSV</button>
+            <button class="btn-reset" id="folha-btn-projeto" title="Baixar todas as planilhas carregadas num projeto .csv para abrir aqui depois e acrescentar novas">&#8681; Salvar projeto</button>
+            <button class="btn-reset" id="folha-btn-export" title="Baixar as linhas filtradas com os dados de cada planilha (RCL, totais declarados). Abre aqui de novo">&#8681; Exportar CSV</button>
             <button class="btn-reset" id="folha-btn-reset">&#8634; Reiniciar</button>
           </div>
         </div>
@@ -536,9 +537,11 @@
       </div>
       <div class="modal-body">
         <p class="modal-help">
-          Competência (<strong>MM-AAAA</strong>) e unidade são lidas do cabeçalho de cada planilha.
+          Competência (<strong>MM-AAAA</strong>), unidade e município são lidos do cabeçalho de cada planilha.
           Confira e ajuste se necessário antes de converter.
         </p>
+        <ul class="modal-aviso" id="folha-modal-aviso" role="alert" hidden></ul>
+        <ul class="modal-help modal-info" id="folha-modal-info" hidden></ul>
         <ul class="folha-queue" id="folha-queue"></ul>
         <div class="folha-queue-empty" id="folha-queue-empty">
           Nenhum arquivo na lista. Clique em <strong>+ Adicionar</strong> para selecionar.

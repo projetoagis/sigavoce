@@ -208,24 +208,36 @@ export function regimePorPeriodo(recs, modo = 'mes') {
 }
 
 export function quadroRodape(files) {
-  return files.map(f => {
+  const grupos = new Map();
+  for (const f of files) {
+    const k = f.unidade + '\x00' + f.competencia;
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(f);
+  }
+  return [...grupos.values()].map(partes => {
+    const f = partes[0];
+    const soma = sel => (partes.every(p => sel(p) != null) ? partes.reduce((t, p) => t + sel(p), 0) : null);
     const decl = f.resumo || {};
-    const calcV = f.calc.vencimentos;
-    const confere = decl.totalVencimentos == null ? null : Math.abs(decl.totalVencimentos - calcV) < 0.05;
+    const totalVencimentos = soma(p => p.resumo?.totalVencimentos ?? null);
+    const calcV = partes.reduce((t, p) => t + p.calc.vencimentos, 0);
+    const parcial = partes.some(p => p.parcial);
+    const confere = totalVencimentos == null || parcial ? null : Math.abs(totalVencimentos - calcV) < 0.05 * partes.length;
     return {
       unidade: f.unidade,
       competencia: f.competencia,
       periodo: periodoDe(f.competencia),
-      pessoasDeclaradas: decl.pessoas ?? null,
-      registros: f.count,
-      totalVencimentos: decl.totalVencimentos ?? null,
+      partes: partes.length,
+      pessoasDeclaradas: soma(p => p.resumo?.pessoas ?? null),
+      registros: partes.reduce((t, p) => t + (p.carregadas ?? p.count), 0),
+      parcial,
+      totalVencimentos,
       vencimentosCalculado: calcV,
-      liquido: f.calc.liquido,
+      liquido: partes.reduce((t, p) => t + p.calc.liquido, 0),
       confere,
       rclMensal: decl.rclMensal ?? null,
       rcl12m: decl.rcl12m ?? null,
       rcl12mPeriodo: decl.rcl12mPeriodo || '',
-      folhaSobreRcl: decl.rclMensal ? (decl.totalVencimentos ?? calcV) / decl.rclMensal : null,
+      folhaSobreRcl: decl.rclMensal ? (totalVencimentos ?? calcV) / decl.rclMensal : null,
     };
   }).sort((a, b) => a.unidade.localeCompare(b.unidade) || a.periodo.localeCompare(b.periodo));
 }

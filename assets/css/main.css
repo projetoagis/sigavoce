@@ -1432,6 +1432,20 @@ thead th.th-sortable.sort-desc::after { content: ' ↓'; opacity: 1; }
 
 .modal-help strong { color: var(--text-0); }
 
+.modal-aviso {
+  list-style: none;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.85rem;
+  color: var(--danger);
+  background: var(--neg-bg);
+  border-left: 2px solid var(--danger);
+  border-radius: 0 4px 4px 0;
+}
+.modal-aviso li + li { margin-top: 0.35rem; }
+.modal-info { list-style: none; }
+
 .folha-queue {
   list-style: none;
   display: flex;
@@ -1493,9 +1507,14 @@ thead th.th-sortable.sort-desc::after { content: ' ↓'; opacity: 1; }
 .queue-fields {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 110px 1fr 180px;
   gap: 0.65rem;
   margin-top: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .queue-fields { grid-template-columns: 110px 1fr; }
+  .queue-field:nth-child(3) { grid-column: 1 / -1; }
 }
 
 @media (max-width: 520px) {
