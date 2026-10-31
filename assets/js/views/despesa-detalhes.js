@@ -116,6 +116,7 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', rec = null, fi
 
   const pp = (numero, linha) => {
     if (!rec || !numero) return esc(numero);
+    if (!rec.ehEmpresa(linha.documento)) return `<span title="Só informativo: os documentos da cadeia são da empresa e o processo deste credor não é procurado neles">${esc(numero)}</span>`;
     if (!daCadeia(linha, municipio)) return `<span title="${esc(`Só informativo: o documento só é procurado nos pagamentos de ${municipio || 'município da cadeia'}`)}">${esc(numero)}</span>`;
     const data = linha.data || linha.data_retencao;
     const info = rec.info(linha.documento, linha.codigo_unidade, numero, data);

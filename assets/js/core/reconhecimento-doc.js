@@ -92,12 +92,21 @@ export function selo(por, temTexto, c) {
   return 'localizado';
 }
 
+export function docsDaEmpresa(credores) {
+  const lista = credores || [];
+  if (lista.some(c => 'empresa' in c)) return new Set(lista.filter(c => c.empresa).map(c => so(c.documento)));
+  const papel = c => semAcento(c.papel);
+  const titulo = lista.filter(c => papel(c).startsWith('TITULO'));
+  return new Set((titulo.length ? titulo : lista.filter(c => papel(c) === 'CONTRATADA')).map(c => so(c.documento)));
+}
+
 const chaveDe = (doc, cuni, numero, data) => `${so(doc)}|${cuni == null ? '' : cuni}|${numeroProcesso(numero)}|${String(data || '').slice(0, 4)}`;
 
-function doPacote(processos, docPorN) {
+function doPacote(processos, docPorN, empresa) {
   const pp = new Map();
   const sobra = new Set();
   for (const [doc, r] of Object.entries(processos || {})) {
+    if (!empresa.has(so(doc))) continue;
     for (const [k, g] of Object.entries((r && r.pp) || {})) {
       const docs = (g.docs || []).map(a => ({
         d: docPorN.get(a.doc), status: a.status, por: a.por, temTexto: !!a.tem_texto,
@@ -110,7 +119,7 @@ function doPacote(processos, docPorN) {
   return { pp, sobra };
 }
 
-function calcular(d, docs) {
+function calcular(d, docs, empresa) {
   const t = d.tcm_detalhes || {};
   const mun = munChave((d.cadeia || {}).municipio);
   const cand = [];
@@ -124,6 +133,7 @@ function calcular(d, docs) {
   }
   const grupos = new Map();
   for (const p of t.detalhes || []) {
+    if (!empresa.has(so(p.documento))) continue;
     if (mun && munChave(munDe(p)) !== mun) continue;
     const num = numeroProcesso(p.numero_documento);
     const m = /^(\d{4})-(\d{2})/.exec(String(p.data || ''));
@@ -166,14 +176,15 @@ function calcular(d, docs) {
 
 export function reconhecer(d, docs, docPorN) {
   const t = (d && d.tcm_detalhes) || null;
-  const vazio = { origem: '', ativo: false, pp: new Map(), sobra: new Set() };
+  const empresa = docsDaEmpresa(t && t.credores);
+  const vazio = { origem: '', ativo: false, pp: new Map(), sobra: new Set(), empresa };
   if (!t) return montarIndices(vazio);
   if (t.processos && typeof t.processos === 'object') {
-    const r = doPacote(t.processos, docPorN);
-    return montarIndices({ origem: 'pacote', ativo: true, ...r });
+    const r = doPacote(t.processos, docPorN, empresa);
+    return montarIndices({ origem: 'pacote', ativo: true, empresa, ...r });
   }
-  const r = calcular(d, docs || []);
-  return montarIndices({ origem: 'nome', ativo: r.candidatos > 0, pp: r.pp, sobra: r.sobra });
+  const r = calcular(d, docs || [], empresa);
+  return montarIndices({ origem: 'nome', ativo: r.candidatos > 0, pp: r.pp, sobra: r.sobra, empresa });
 }
 
 function montarIndices(r) {
@@ -191,6 +202,7 @@ function montarIndices(r) {
     ...r,
     porDoc,
     grupos,
+    ehEmpresa: doc => r.empresa.has(so(doc)),
     info: (doc, cuni, numero, data) => r.pp.get(chaveDe(doc, cuni, numero, data)) || null,
   };
 }
