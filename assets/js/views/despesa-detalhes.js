@@ -92,8 +92,9 @@ function saibaEmpenho() {
 }
 
 export function desenharDespesaDetalhada(el, t, { municipio = '', rec = null, filtro = '' } = {}) {
-  const credores = t.credores || [];
-  const comDado = credores.find(c => c.pagamentos) || credores.find(c => (t.detalhes || []).some(p => p.documento === c.documento));
+  const comValor = new Set([...(t.detalhes || []), ...(t.retencoes || [])].map(p => p.documento));
+  const credores = (t.credores || []).filter(c => c.pagamentos > 0 || comValor.has(c.documento));
+  const comDado = credores.find(c => c.pagamentos) || credores[0];
   const S = {
     doc: (comDado || credores[0] || {}).documento || '',
     aba: 'contratos',
