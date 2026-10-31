@@ -1,4 +1,5 @@
 import { reconhecer } from './reconhecimento-doc.js';
+import { lerBases } from './bases-envolvidos.js';
 
 export const FORMATOS_ACEITOS = ['pacote-investigacao'];
 export const VERSAO_MAXIMA = 1;
@@ -105,6 +106,7 @@ function montar(d) {
     fora: ((d.contratacoes && d.contratacoes.fora_de_contratacao) || []).map(i => docPorId.get(i)).filter(Boolean),
     nomes,
     rec: reconhecer(d, docs, docPorId),
+    basesEnv: lerBases(d.bases_envolvidos, nomes, d.envolvidos),
   };
 }
 

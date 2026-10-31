@@ -9,6 +9,7 @@ import { tabela } from './tabela.js';
 import { NATUREZAS_ATENCAO, FONTES_ATENCAO } from '../core/pontos-atencao.js';
 import { desenharGrafo } from './grafo.js';
 import { desenharDespesaDetalhada } from './despesa-detalhes.js';
+import { desenharBases } from './bases-envolvidos.js';
 
 const $ = id => document.getElementById(id);
 const S = { p: null, aba: '', classif: '' };
@@ -351,7 +352,11 @@ const refDocs = ids => docsDe(ids).map(rotuloDoc).join(', ');
 const refDocsHtml = ids => docsDe(ids).map(d => linkDoc(d, rotuloDoc(d))).join(', ');
 
 function abaEnvolvidos(el) {
-  tabela(el, {
+  const temLista = (S.p.bruto.envolvidos || []).length > 0;
+  el.innerHTML = `${temLista ? '<div class="iv-env-lista"></div>' : ''}${S.p.basesEnv.tem ? '<section class="iv-secao iv-bases"></section>' : ''}`;
+  if (S.p.basesEnv.tem) desenharBases(el.querySelector('.iv-bases'), S.p.basesEnv);
+  if (!temLista) return;
+  tabela(el.querySelector('.iv-env-lista'), {
     linhas: S.p.bruto.envolvidos || [],
     csv: 'envolvidos.csv',
     colunas: [
@@ -563,6 +568,7 @@ const CONTAGENS = {
   documentos: 'documentos', n_envolvidos: 'envolvidos', n_grafos: 'grafos', n_funcionarios: 'funcionários',
   n_socios: 'empresas com sócios', n_tcm_detalhes: 'pagamentos na Despesa detalhada', n_folha: 'achados na folha',
   n_func_cruzamentos: 'cruzamentos', n_beneficios: 'pessoas com benefício',
+  n_bases_envolvidos: 'envolvidos com registro em bases públicas',
 };
 
 function novidadesHtml(p) {
@@ -592,7 +598,8 @@ function clienteHtml(c) {
 function desenhar() {
   const p = S.p;
   const r = p.resumo;
-  const abas = ABAS.filter(a => a.id === 'cadeia' || (p.secoes.has(a.id) && temDados(a.id, p.bruto[a.id])));
+  const abas = ABAS.filter(a => a.id === 'cadeia' || (p.secoes.has(a.id) && temDados(a.id, p.bruto[a.id]))
+    || (a.id === 'envolvidos' && p.basesEnv.tem));
   if (!abas.some(a => a.id === S.aba)) S.aba = 'cadeia';
   $('inv-cab').innerHTML = `
     <div class="iv-cab-tit">

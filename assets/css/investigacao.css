@@ -172,6 +172,9 @@ details[open] > summary > .iv-pasta .iv-pasta-aberta { display: inline; }
 .iv-secao { margin-bottom: 1.5rem; }
 .iv-secao h3 { font-size: 0.98rem; margin-bottom: 0.1rem; }
 .iv-secao .table-wrapper { margin-top: 0.5rem; }
+.iv-env-lista + .iv-bases { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 2px solid var(--border); }
+.iv-bases .tb-detalhe .iv-base + .iv-base { margin-top: 0.9rem; }
+.iv-bases .tb-detalhe .dd-h4 { margin-bottom: 0.3rem; }
 .iv-seg { margin-bottom: 0.75rem; flex-wrap: wrap; }
 .iv-chip {
   display: inline-block; font-size: 0.7rem; margin: 0.1rem 0.25rem 0.1rem 0; padding: 0.05rem 0.45rem;
