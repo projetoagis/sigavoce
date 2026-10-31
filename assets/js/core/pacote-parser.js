@@ -1,3 +1,5 @@
+import { reconhecer } from './reconhecimento-doc.js';
+
 export const FORMATOS_ACEITOS = ['pacote-investigacao'];
 export const VERSAO_MAXIMA = 1;
 
@@ -49,40 +51,6 @@ export function lerCliente(c) {
   return { nome, cpf: cpf.length === 11 ? cpf : '' };
 }
 
-export function numeroPP(arquivo) {
-  const m = /(?:^|[^A-Z0-9])PP\s*(?:N[º°O.]?\s*)?0*(\d+)/i.exec(String(arquivo || ''));
-  return m ? m[1] : '';
-}
-
-const anoDe = s => {
-  const t = String(s || '');
-  const iso = /^(\d{4})-/.exec(t);
-  if (iso) return iso[1];
-  const br = /(\d{4})\s*$/.exec(t);
-  return br ? br[1] : '';
-};
-
-export function indicePP(docs) {
-  const idx = new Map();
-  for (const d of docs || []) {
-    if (d.papel && d.papel !== 'pagamento') continue;
-    const n = numeroPP(d.arquivo);
-    const ano = anoDe(d.competencia);
-    if (!n || !ano) continue;
-    const k = `${ano}|${n}`;
-    if (!idx.has(k)) idx.set(k, []);
-    idx.get(k).push(d);
-  }
-  for (const l of idx.values()) l.sort((a, b) => String(a.arquivo).localeCompare(String(b.arquivo), 'pt-BR', { numeric: true }));
-  return idx;
-}
-
-export function docsDoPP(idx, numero, data) {
-  const n = String(numero || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
-  const ano = anoDe(String(data || '').slice(0, 10));
-  return (n && ano && idx.get(`${ano}|${n}`)) || [];
-}
-
 export function classificacoes(docs) {
   const c = new Map();
   for (const d of docs || []) {
@@ -92,8 +60,7 @@ export function classificacoes(docs) {
   return [...c.entries()].map(([nome, n]) => ({ nome, n })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }));
 }
 
-export function recortePorPP(t, idx, aceita = () => true) {
-  const casa = (numero, linha) => aceita(linha) && docsDoPP(idx, numero, linha.data || linha.data_retencao).length > 0;
+export function recortePorPP(t, casa) {
   const detalhes = (t.detalhes || []).filter(p => casa(p.numero_documento, p));
   return {
     ...t,
@@ -137,7 +104,7 @@ function montar(d) {
     blocos,
     fora: ((d.contratacoes && d.contratacoes.fora_de_contratacao) || []).map(i => docPorId.get(i)).filter(Boolean),
     nomes,
-    pp: indicePP(docs),
+    rec: reconhecer(d, docs, docPorId),
   };
 }
 

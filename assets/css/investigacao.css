@@ -336,6 +336,20 @@ details[open] > summary > .iv-pasta .iv-pasta-aberta { display: inline; }
   padding: 0 0.3rem; background: var(--bg-2);
 }
 .doc-link.doc-parte:hover { border-color: var(--accent); }
+.doc-link.doc-parte-conferir { border-color: var(--warn); color: var(--warn); }
+.doc-link.doc-parte-texto { border-style: dashed; }
+.doc-selo { display: inline-flex; vertical-align: -0.12em; margin-left: 0.25rem; cursor: help; }
+.doc-selo svg { width: 0.8rem; height: 0.8rem; fill: currentColor; }
+.doc-selo .doc-selo-traco { fill: none; stroke: var(--bg-1); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.doc-selo .doc-selo-aro { fill: none; stroke: currentColor; stroke-width: 1.4; }
+.doc-selo-confirmado { color: var(--match); }
+.doc-selo-localizado { color: var(--accent); }
+.doc-selo-texto { color: var(--accent); }
+.doc-selo-conferir { color: var(--warn); }
+.doc-pp-falta { color: var(--danger); cursor: help; }
+.doc-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.8rem; }
+.doc-legenda-item { display: inline-flex; align-items: center; gap: 0.15rem; white-space: nowrap; }
+.doc-legenda-item .doc-selo { margin-left: 0; }
 
 .doc-painel {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 200;

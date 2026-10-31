@@ -20,18 +20,63 @@ export function registrarPartes(grupos) {
   }
 }
 
-export function linkDoc(d, texto, classe = '') {
+export function linkDoc(d, texto, classe = '', dica = '') {
   if (!d || !d.url) return escapeHtml(texto);
   const titulo = d.arquivo || `DOC ${d.n}`;
   return `<a class="doc-link${classe ? ` ${classe}` : ''}" href="${escapeHtml(d.url)}" data-pdf="1" target="_blank" rel="noopener noreferrer"
-    title="${escapeHtml(titulo)}">${escapeHtml(texto)}</a>`;
+    data-titulo="${escapeHtml(titulo)}" title="${escapeHtml(dica || titulo)}">${escapeHtml(texto)}</a>`;
 }
 
-export function linkPP(numero, docs) {
-  if (!docs || !docs.length) return escapeHtml(numero);
-  if (docs.length === 1) return linkDoc(docs[0], numero, 'doc-pp');
-  return `${linkDoc(docs[0], numero, 'doc-pp')}<span class="doc-partes">${docs.map((d, i) =>
-    linkDoc(d, rotuloParte(d.arquivo, i).replace('Parte ', 'P'), 'doc-parte')).join('')}</span>`;
+const ICO = {
+  confirmado: '<circle cx="8" cy="8" r="7"/><path class="doc-selo-traco" d="M4.6 8.2l2.3 2.3 4.5-4.7"/>',
+  localizado: '<circle class="doc-selo-aro" cx="8" cy="8" r="6.2"/><circle cx="8" cy="8" r="3"/>',
+  texto: '<path d="M3 1.5h6.5L13 5v9.5H3z"/><path class="doc-selo-traco" d="M5.3 7.5h5.4M5.3 10h5.4M5.3 12.4h3.4"/>',
+  conferir: '<path d="M8 1.2l7 13.3H1z"/><path class="doc-selo-traco" d="M8 6v4.3M8 12.2v.3"/>',
+};
+
+export const SELOS = {
+  confirmado: ['Confirmado', 'Arquivo de pagamento com o número do processo no nome, na competência do pagamento; o texto traz o CPF/CNPJ do credor e mais duas provas (número, valor ou data).'],
+  localizado: ['Localizado', 'Arquivo de pagamento com o número do processo no nome, na competência do pagamento; o texto confirma pouco ou o PDF não tem texto.'],
+  texto: ['Pelo texto', 'O nome do arquivo não traz o número; achado pelo texto do documento: número do processo + CPF/CNPJ do credor + valor ou data.'],
+  conferir: ['Conferir', 'O número bate, mas o texto não traz o CPF/CNPJ, o valor nem a data. Pode ser o processo de outro credor.'],
+};
+
+export function seloHtml(status) {
+  const s = SELOS[status];
+  if (!s) return '';
+  return `<span class="doc-selo doc-selo-${status}" title="${escapeHtml(`${s[0]}: ${s[1]}`)}" aria-label="${escapeHtml(s[0])}"><svg viewBox="0 0 16 16" aria-hidden="true">${ICO[status]}</svg></span>`;
+}
+
+const simNao = b => (b ? 'sim' : 'não');
+
+export function dicaReconhecido(a) {
+  const d = a.d;
+  const s = SELOS[a.status];
+  return [
+    `DOC ${d.n} — ${d.arquivo || d.codigo || ''}`,
+    [d.competencia ? `competência ${d.competencia}` : '', d.classificacao || ''].filter(Boolean).join(' · '),
+    s ? `Selo: ${s[0]} · achado pelo ${a.por === 'texto' ? 'texto do documento' : 'nome do arquivo'}` : '',
+    a.temTexto ? `no texto: nº ${simNao(a.conf.numero)} · CPF/CNPJ ${simNao(a.conf.cnpj)} · valor ${simNao(a.conf.valor)} · data ${simNao(a.conf.data)}`
+      : 'PDF sem texto: só classificação, competência e nome',
+    a.unidade === 'dif' ? 'a unidade do arquivo não é a do pagamento' : '',
+  ].filter(Boolean).join('\n');
+}
+
+export function linkPP(numero, info) {
+  const docs = (info && info.docs) || [];
+  if (!docs.length) return escapeHtml(numero);
+  const [a0] = docs;
+  const principal = linkDoc(a0.d, numero, 'doc-pp', dicaReconhecido(a0)) + seloHtml(a0.status);
+  if (docs.length === 1) return principal;
+  return `${principal}<span class="doc-partes">${docs.map((a, i) =>
+    linkDoc(a.d, rotuloParte(a.d.arquivo, i).replace('Parte ', 'P'), `doc-parte doc-parte-${a.status}`, dicaReconhecido(a))).join('')}</span>`;
+}
+
+export function legendaSelos() {
+  return `<p class="dd-nota doc-legenda">Como o documento do processo de pagamento foi reconhecido:
+    ${Object.entries(SELOS).map(([k, s]) => `<span class="doc-legenda-item" title="${escapeHtml(s[1])}">${seloHtml(k)} ${escapeHtml(s[0].toLowerCase())}</span>`).join('')}
+    <span class="doc-legenda-item"><span class="doc-pp-falta">nº</span> sem documento</span>
+    · passe o mouse no selo ou no número para ver o motivo.</p>`;
 }
 
 function desenharPartes(url) {
@@ -121,7 +166,7 @@ export function initPainelDoc() {
     const a = e.target.closest('a[data-pdf]');
     if (!a) return;
     e.preventDefault();
-    abrirDoc(a.href, a.title || a.textContent.trim());
+    abrirDoc(a.href, a.dataset.titulo || a.title || a.textContent.trim());
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !$('doc-painel').hidden) fecharDoc();

@@ -1,7 +1,7 @@
 import { escapeHtml, formatBRL, formatInt } from '../core/format.js';
 import {
-  lerPacote, PacoteError, mascaraDoc, porAnoClassificacao, lerCruzamentos, rotuloAnomes, numeroPP, docsDoPP,
-  classificacoes, indicePP, recortePorPP,
+  lerPacote, PacoteError, mascaraDoc, porAnoClassificacao, lerCruzamentos, rotuloAnomes,
+  classificacoes, recortePorPP,
 } from '../core/pacote-parser.js';
 import { daCadeia } from '../core/despesa-detalhes.js';
 import { linkDoc, registrarPartes } from './painel-doc.js';
@@ -342,7 +342,10 @@ function confirmarClassif(nome, aceitar, descartar) {
   fundo.querySelector('[data-r="sim"]').focus();
 }
 
-const rotuloDoc = d => `DOC ${d.n}${numeroPP(d.arquivo) ? ` (PP ${numeroPP(d.arquivo)})` : ''}`;
+const rotuloDoc = d => {
+  const nums = [...(S.p.rec.porDoc.get(d.n) || [])];
+  return `DOC ${d.n}${nums.length ? ` (PP ${nums.join(', ')})` : ''}`;
+};
 const docsDe = ids => (ids || []).map(i => S.p.docPorId.get(i)).filter(Boolean);
 const refDocs = ids => docsDe(ids).map(rotuloDoc).join(', ');
 const refDocsHtml = ids => docsDe(ids).map(d => linkDoc(d, rotuloDoc(d))).join(', ');
@@ -419,15 +422,17 @@ function abaDespesa(el) {
   const todos = S.p.bruto.tcm_detalhes || {};
   let t = todos;
   if (S.classif) {
-    t = recortePorPP(todos, indicePP(S.p.docs.filter(casaClassif)), l => daCadeia(l, S.p.cadeia.municipio || ''));
+    const mun = S.p.cadeia.municipio || '';
+    t = recortePorPP(todos, (numero, l) => daCadeia(l, mun)
+      && ((S.p.rec.info(l.documento, l.codigo_unidade, numero, l.data || l.data_retencao) || {}).docs || []).some(a => casaClassif(a.d)));
   }
   el.innerHTML = `${avisoFiltro(`${formatInt((t.detalhes || []).length)} de ${formatInt((todos.detalhes || []).length)} pagamentos,
-    casados pelo número do processo de pagamento (mesmo ano) com os arquivos desta classificação`)}
+    casados pelo número do processo de pagamento com os arquivos desta classificação`)}
     <div class="iv-dd"></div>`;
   desenharDespesaDetalhada(el.querySelector('.iv-dd'), t, {
     municipio: S.p.cadeia.municipio || '',
     filtro: S.classif,
-    docsDoPP: (numero, data) => docsDoPP(S.p.pp, numero, data),
+    rec: S.p.rec,
   });
 }
 
@@ -636,7 +641,7 @@ async function abrirArquivo(file) {
     mostrarErro(e instanceof PacoteError ? e.message : 'Não foi possível ler o arquivo.');
     return;
   }
-  registrarPartes(S.p.pp.values());
+  registrarPartes(S.p.rec.grupos);
   S.aba = 'cadeia';
   S.classif = '';
   $('inv-upload').hidden = true;

@@ -1,5 +1,5 @@
 import { escapeHtml as esc, formatBRL, formatInt } from '../core/format.js';
-import { linkPP } from './painel-doc.js';
+import { linkPP, legendaSelos } from './painel-doc.js';
 import { mascaraDoc } from '../core/pacote-parser.js';
 import {
   num, bruto, soma, dia, ano, doCredor, municipios, munChave, munDe, entDe, daCadeia, orgao, multiUnidade,
@@ -91,7 +91,7 @@ function saibaEmpenho() {
   fundo.querySelector('[data-r]').focus();
 }
 
-export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = null, filtro = '' } = {}) {
+export function desenharDespesaDetalhada(el, t, { municipio = '', rec = null, filtro = '' } = {}) {
   const credores = t.credores || [];
   const comDado = credores.find(c => c.pagamentos) || credores.find(c => (t.detalhes || []).some(p => p.documento === c.documento));
   const S = {
@@ -115,9 +115,13 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
   const munCadeia = munChave(municipio);
 
   const pp = (numero, linha) => {
-    if (!docsDoPP || !numero) return esc(numero);
-    if (!daCadeia(linha, municipio)) return `<span title="${esc(`Só informativo: o documento só abre para pagamentos da Prefeitura de ${municipio || 'município da cadeia'}`)}">${esc(numero)}</span>`;
-    return linkPP(numero, docsDoPP(numero, linha.data || linha.data_retencao));
+    if (!rec || !numero) return esc(numero);
+    if (!daCadeia(linha, municipio)) return `<span title="${esc(`Só informativo: o documento só é procurado nos pagamentos de ${municipio || 'município da cadeia'}`)}">${esc(numero)}</span>`;
+    const data = linha.data || linha.data_retencao;
+    const info = rec.info(linha.documento, linha.codigo_unidade, numero, data);
+    if (info && info.docs.length) return linkPP(numero, info);
+    if (!rec.ativo) return esc(numero);
+    return `<span class="doc-pp-falta" title="${esc(`Nenhum documento de pagamento da cadeia com o nº ${String(numero).replace(/\D/g, '').replace(/^0+(?=\d)/, '')} perto de ${dia(data).slice(3)}`)}">${esc(numero)}</span>`;
   };
 
   el.innerHTML = '<div class="dd"></div>';
@@ -569,6 +573,7 @@ export function desenharDespesaDetalhada(el, t, { municipio = '', docsDoPP = nul
           Só pagamentos da classificação <b>${esc(filtro)}</b></p>` : ''}${aba}</div>`;
     }
     raiz.innerHTML = `<div class="dd-creds">${chips}</div>${miolo}
+      ${rec && rec.ativo && d.pag.length ? legendaSelos() : ''}
       ${t.escopo ? `<p class="dd-nota">Este pacote traz só os pagamentos de <b>${esc(t.escopo)}</b>.</p>` : ''}
       ${t.cortado ? '<p class="dd-ruim">A lista chegou cortada no limite de linhas — os totais valem só para o que veio no arquivo.</p>' : ''}
       <p class="dd-nota">Fonte: consulta pública de despesas do TCM-BA. <b>Líquido</b> é o valor pago ao credor;
