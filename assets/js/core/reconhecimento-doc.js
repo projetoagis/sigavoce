@@ -1,8 +1,6 @@
 import { munChave, munDe } from './despesa-detalhes.js';
 
-export const MESES_ANTES = 1;
-export const MESES_DEPOIS = 2;
-const ORDEM = { confirmado: 0, localizado: 1, texto: 2, conferir: 3 };
+const ORDEM = { confirmado: 0, localizado: 1, conferir: 2 };
 const PROVAS = ['numero', 'cnpj', 'valor', 'data'];
 
 const TIRAR_DO_NOME = [
@@ -84,8 +82,7 @@ export function conferir(texto, compacto, num, doc, valores, datas) {
   return { numero, cnpj, valor, data };
 }
 
-export function selo(por, temTexto, c) {
-  if (por === 'texto') return 'texto';
+export function selo(temTexto, c) {
   const outras = ['numero', 'valor', 'data'].filter(k => c[k]).length;
   if (temTexto && c.cnpj && outras >= 2) return 'confirmado';
   if (temTexto && !(c.cnpj || c.valor || c.data)) return 'conferir';
@@ -100,7 +97,10 @@ export function docsDaEmpresa(credores) {
   return new Set((titulo.length ? titulo : lista.filter(c => papel(c) === 'CONTRATADA')).map(c => so(c.documento)));
 }
 
-const chaveDe = (doc, cuni, numero, data) => `${so(doc)}|${cuni == null ? '' : cuni}|${numeroProcesso(numero)}|${String(data || '').slice(0, 4)}`;
+const chaveBase = (doc, cuni, numero) => `${so(doc)}|${cuni == null ? '' : cuni}|${numeroProcesso(numero)}`;
+const chaveDe = (doc, cuni, numero, data) => `${chaveBase(doc, cuni, numero)}|${String(data || '').slice(0, 7)}`;
+const chaveAno = (doc, cuni, numero, data) => `${chaveBase(doc, cuni, numero)}|${String(data || '').slice(0, 4)}`;
+const melhor = docs => docs.reduce((m, a) => (ORDEM[a.status] < ORDEM[m] ? a.status : m), 'conferir');
 
 function doPacote(processos, docPorN, empresa) {
   const pp = new Map();
@@ -108,11 +108,11 @@ function doPacote(processos, docPorN, empresa) {
   for (const [doc, r] of Object.entries(processos || {})) {
     if (!empresa.has(so(doc))) continue;
     for (const [k, g] of Object.entries((r && r.pp) || {})) {
-      const docs = (g.docs || []).map(a => ({
-        d: docPorN.get(a.doc), status: a.status, por: a.por, temTexto: !!a.tem_texto,
+      const docs = (g.docs || []).filter(a => a.por !== 'texto').map(a => ({
+        d: docPorN.get(a.doc), status: a.status in ORDEM ? a.status : 'localizado', por: 'nome', temTexto: !!a.tem_texto,
         unidade: a.unidade || '', conf: Object.fromEntries(PROVAS.map(p => [p, !!(a.conf || {})[p]])),
       })).filter(a => a.d);
-      pp.set(`${so(doc)}|${k}`, { status: docs.length ? (g.status || 'nao') : 'nao', docs });
+      pp.set(`${so(doc)}|${k}`, { status: docs.length ? melhor(docs) : 'nao', docs });
     }
     for (const n of (r && r.sobra) || []) if (docPorN.has(n)) sobra.add(n);
   }
@@ -139,9 +139,8 @@ function calcular(d, docs, empresa) {
     const m = /^(\d{4})-(\d{2})/.exec(String(p.data || ''));
     if (!num || !m) continue;
     const k = chaveDe(p.documento, p.codigo_unidade || '', num, p.data);
-    const g = grupos.get(k) || { num, doc: so(p.documento), ano: Number(m[1]), meses: new Set(), lista: [] };
+    const g = grupos.get(k) || { num, doc: so(p.documento), ano: Number(m[1]), mes: Number(m[2]), lista: [] };
     g.lista.push(p);
-    g.meses.add(Number(m[2]));
     grupos.set(k, g);
   }
   const pp = new Map();
@@ -151,24 +150,13 @@ function calcular(d, docs, empresa) {
     const datas = datasDe(g.lista);
     const achados = [];
     for (const c of cand) {
-      const dists = [...g.meses].map(me => (c.comp.ano - g.ano) * 12 + (c.comp.mes - me))
-        .filter(x => x >= -MESES_ANTES && x <= MESES_DEPOIS);
-      if (!dists.length) continue;
-      const dist = dists.reduce((a, b) => (Math.abs(b) < Math.abs(a) ? b : a));
-      const noNome = c.nums.has(g.num);
-      if (!noNome && !c.temTexto) continue;
+      if (c.comp.ano !== g.ano || c.comp.mes !== g.mes || !c.nums.has(g.num)) continue;
       const conf = c.temTexto ? conferir(c.texto, c.compacto, g.num, g.doc, valores, datas)
         : { numero: false, cnpj: false, valor: false, data: false };
-      if (!noNome && !(conf.numero && conf.cnpj && (conf.valor || conf.data))) continue;
-      const por = noNome ? 'nome' : 'texto';
-      achados.push({ d: c.d, dist, por, prefixo: !!c.nums.get(g.num), temTexto: c.temTexto, unidade: '', conf, status: selo(por, c.temTexto, conf) });
+      achados.push({ d: c.d, por: 'nome', prefixo: !!c.nums.get(g.num), temTexto: c.temTexto, unidade: '', conf, status: selo(c.temTexto, conf) });
     }
-    achados.sort((a, b) => ORDEM[a.status] - ORDEM[b.status] || Math.abs(a.dist) - Math.abs(b.dist)
-      || (a.prefixo === b.prefixo ? 0 : a.prefixo ? -1 : 1)
-      || PROVAS.filter(p => b.conf[p]).length - PROVAS.filter(p => a.conf[p]).length
-      || String(a.d.arquivo || '').localeCompare(String(b.d.arquivo || '')));
     for (const a of achados) usados.add(a.d.n);
-    pp.set(k, { status: achados.length ? achados[0].status : 'nao', docs: achados });
+    pp.set(k, { status: achados.length ? melhor(achados) : 'nao', docs: achados });
   }
   const sobra = new Set(cand.filter(c => !usados.has(c.d.n)).map(c => c.d.n));
   return { pp, sobra, candidatos: cand.length };
@@ -187,22 +175,73 @@ export function reconhecer(d, docs, docPorN) {
   return montarIndices({ origem: 'nome', ativo: r.candidatos > 0, pp: r.pp, sobra: r.sobra, empresa });
 }
 
+export function parteDe(arquivo) {
+  const m = /[_\s-]parte?[_\s-]?0*(\d+)/i.exec(String(arquivo || ''));
+  return m ? Number(m[1]) : 0;
+}
+
+export function conjuntoDe(arquivo) {
+  const nome = semAcento(String(arquivo || '').split(/[\\/]/).pop().replace(/\.[A-Za-z0-9]{2,4}$/, ''))
+    .replace(/[\s_.-]*PARTE?[\s_-]*0*\d+/g, ' ');
+  return nome.replace(/[^A-Z0-9%]+/g, ' ').trim();
+}
+
+const notaDoc = a => [a.unidade === 'dif' ? 1 : 0, ORDEM[a.status] ?? 9, a.prefixo === false ? 1 : 0,
+  -PROVAS.filter(p => (a.conf || {})[p]).length];
+const compararNota = (x, y) => {
+  for (let i = 0; i < x.length; i += 1) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+};
+
+export function partesDoProcesso(docs) {
+  const lista = (docs || []).filter(a => a.por !== 'texto');
+  const conjuntos = new Map();
+  for (const a of lista) {
+    const c = conjuntoDe(a.d.arquivo);
+    if (!conjuntos.has(c)) conjuntos.set(c, []);
+    conjuntos.get(c).push(a);
+  }
+  const blocos = [...conjuntos.entries()].map(([c, l]) => ({
+    c, l, nota: l.map(notaDoc).sort(compararNota)[0],
+  }));
+  blocos.sort((x, y) => compararNota(x.nota, y.nota) || x.c.localeCompare(y.c, 'pt-BR', { numeric: true }));
+  return blocos.flatMap(b => [...b.l].sort((a, z) => parteDe(a.d.arquivo) - parteDe(z.d.arquivo)
+    || String(a.d.arquivo || '').localeCompare(String(z.d.arquivo || ''), 'pt-BR', { numeric: true })
+    || a.d.n - z.d.n));
+}
+
 function montarIndices(r) {
   const porDoc = new Map();
   const grupos = [];
-  for (const [k, g] of r.pp) {
+  const vistos = new Set();
+  for (const [k, g0] of r.pp) {
+    const g = { ...g0, docs: partesDoProcesso(g0.docs) };
+    r.pp.set(k, g);
     const num = k.split('|')[2];
     for (const a of g.docs) {
       if (!porDoc.has(a.d.n)) porDoc.set(a.d.n, new Set());
       porDoc.get(a.d.n).add(num);
     }
-    if (g.docs.length > 1) grupos.push(g.docs.map(a => a.d));
+    const porConjunto = new Map();
+    for (const a of g.docs) {
+      const c = conjuntoDe(a.d.arquivo);
+      if (!porConjunto.has(c)) porConjunto.set(c, []);
+      porConjunto.get(c).push(a.d);
+    }
+    for (const l of porConjunto.values()) {
+      const assinatura = l.map(d => d.n).join(',');
+      if (l.length > 1 && !vistos.has(assinatura)) {
+        vistos.add(assinatura);
+        grupos.push(l);
+      }
+    }
   }
   return {
     ...r,
     porDoc,
     grupos,
     ehEmpresa: doc => r.empresa.has(so(doc)),
-    info: (doc, cuni, numero, data) => r.pp.get(chaveDe(doc, cuni, numero, data)) || null,
+    info: (doc, cuni, numero, data) => r.pp.get(chaveDe(doc, cuni, numero, data))
+      || r.pp.get(chaveAno(doc, cuni, numero, data)) || null,
   };
 }

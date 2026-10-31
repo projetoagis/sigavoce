@@ -1,4 +1,5 @@
 import { escapeHtml } from '../core/format.js';
+import { parteDe } from '../core/reconhecimento-doc.js';
 
 const $ = id => document.getElementById(id);
 const ESPERA_AVISO = 12000;
@@ -6,8 +7,7 @@ let tempo = null;
 let partesPorUrl = new Map();
 
 export function rotuloParte(arquivo, i) {
-  const m = /[_\s-]parte?[_\s-]?0*(\d+)/i.exec(String(arquivo || ''));
-  return `Parte ${m ? m[1] : i + 1}`;
+  return `Parte ${parteDe(arquivo) || i + 1}`;
 }
 
 export function registrarPartes(grupos) {
@@ -30,14 +30,12 @@ export function linkDoc(d, texto, classe = '', dica = '') {
 const ICO = {
   confirmado: '<circle cx="8" cy="8" r="7"/><path class="doc-selo-traco" d="M4.6 8.2l2.3 2.3 4.5-4.7"/>',
   localizado: '<circle class="doc-selo-aro" cx="8" cy="8" r="6.2"/><circle cx="8" cy="8" r="3"/>',
-  texto: '<path d="M3 1.5h6.5L13 5v9.5H3z"/><path class="doc-selo-traco" d="M5.3 7.5h5.4M5.3 10h5.4M5.3 12.4h3.4"/>',
   conferir: '<path d="M8 1.2l7 13.3H1z"/><path class="doc-selo-traco" d="M8 6v4.3M8 12.2v.3"/>',
 };
 
 export const SELOS = {
   confirmado: ['Confirmado', 'Arquivo de pagamento com o número do processo no nome, na competência do pagamento; o texto traz o CPF/CNPJ do credor e mais duas provas (número, valor ou data).'],
-  localizado: ['Localizado', 'Arquivo de pagamento com o número do processo no nome, na competência do pagamento; o texto confirma pouco ou o PDF não tem texto.'],
-  texto: ['Pelo texto', 'O nome do arquivo não traz o número; achado pelo texto do documento: número do processo + CPF/CNPJ do credor + valor ou data.'],
+  localizado: ['Localizado', 'Arquivo de pagamento com o número do processo no nome, na competência do pagamento; o texto reforça pouco ou o PDF não tem texto.'],
   conferir: ['Conferir', 'O número bate, mas o texto não traz o CPF/CNPJ, o valor nem a data. Pode ser o processo de outro credor.'],
 };
 
@@ -55,7 +53,7 @@ export function dicaReconhecido(a) {
   return [
     `DOC ${d.n} — ${d.arquivo || d.codigo || ''}`,
     [d.competencia ? `competência ${d.competencia}` : '', d.classificacao || ''].filter(Boolean).join(' · '),
-    s ? `Selo: ${s[0]} · achado pelo ${a.por === 'texto' ? 'texto do documento' : 'nome do arquivo'}` : '',
+    s ? `Selo: ${s[0]} · achado pelo nome do arquivo na competência do pagamento` : '',
     a.temTexto ? `no texto: nº ${simNao(a.conf.numero)} · CPF/CNPJ ${simNao(a.conf.cnpj)} · valor ${simNao(a.conf.valor)} · data ${simNao(a.conf.data)}`
       : 'PDF sem texto: só classificação, competência e nome',
     a.unidade === 'dif' ? 'a unidade do arquivo não é a do pagamento' : '',

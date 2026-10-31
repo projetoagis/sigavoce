@@ -347,7 +347,6 @@ details[open] > summary > .iv-pasta .iv-pasta-aberta { display: inline; }
 .doc-selo .doc-selo-aro { fill: none; stroke: currentColor; stroke-width: 1.4; }
 .doc-selo-confirmado { color: var(--match); }
 .doc-selo-localizado { color: var(--accent); }
-.doc-selo-texto { color: var(--accent); }
 .doc-selo-conferir { color: var(--warn); }
 .doc-pp-falta { color: var(--danger); cursor: help; }
 .doc-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.8rem; }
