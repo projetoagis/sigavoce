@@ -33,11 +33,21 @@
   --abas-bg: #1d3f66;
   --abas-borda: #15314f;
   --abas-texto: rgba(255,255,255,0.82);
+  --sub-bg: #131f2e;
+  --sub-borda: #1d3f66;
+  --sub-hover: rgba(88,166,255,0.14);
+  --sub-texto: #9fb8d6;
+  --sub-texto-forte: #e6edf3;
 }
 html.theme-light {
   --abas-bg: var(--light-header);
   --abas-borda: var(--light-header-border);
   --abas-texto: rgba(255,255,255,0.88);
+  --sub-bg: linear-gradient(to bottom, var(--light-control-2), var(--light-surface-2));
+  --sub-borda: #b9cbe6;
+  --sub-hover: rgba(77,124,169,0.16);
+  --sub-texto: var(--light-control-text);
+  --sub-texto-forte: var(--light-ink);
 }
 
 .iv-abas {
@@ -203,7 +213,36 @@ details[open] > summary > .iv-pasta .iv-pasta-aberta { display: inline; }
 .iv-env-lista + .iv-bases { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 2px solid var(--border); }
 .iv-bases .tb-detalhe .iv-base + .iv-base { margin-top: 0.9rem; }
 .iv-bases .tb-detalhe .dd-h4 { margin-bottom: 0.3rem; }
-.iv-seg { margin-bottom: 0.75rem; flex-wrap: wrap; }
+.iv-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem;
+  background: var(--sub-bg);
+  border: 1px solid var(--sub-borda);
+  border-radius: 8px;
+  overflow: visible;
+}
+.iv-seg button {
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.42rem 0.9rem;
+  color: var(--sub-texto);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.iv-seg button:hover { background: var(--sub-hover); color: var(--sub-texto-forte); }
+.iv-seg button:focus-visible { outline: 2px solid var(--abas-bg); outline-offset: 1px; }
+.iv-seg button[aria-pressed="true"] {
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(to bottom, var(--abas-bg), var(--abas-borda));
+  border-color: var(--abas-borda);
+  box-shadow: 0 2px 6px rgba(2,33,93,0.22);
+}
 .iv-chip {
   display: inline-block; font-size: 0.7rem; margin: 0.1rem 0.25rem 0.1rem 0; padding: 0.05rem 0.45rem;
   border-radius: 10px; background: var(--bg-2); color: var(--text-1); border: 1px solid var(--border); white-space: nowrap;
