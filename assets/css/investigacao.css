@@ -270,6 +270,19 @@ details[open] > summary > .iv-pasta .iv-pasta-aberta { display: inline; }
 .gr-no.sel circle { stroke: var(--accent); stroke-width: 4; }
 .gr-no.achado circle { stroke: var(--warn); stroke-width: 5; }
 .gr-no.apagado { opacity: 0.2; }
+.gr-no-bloq .gr-bloq-fundo { fill: var(--bg-2); stroke: var(--text-1); stroke-width: 1.4; }
+.gr-no.sel .gr-bloq-fundo { stroke: var(--accent); stroke-width: 3; }
+.gr-no.achado .gr-bloq-fundo { stroke: var(--warn); stroke-width: 4; }
+.gr-cadeado path { stroke: var(--text-1); }
+.gr-no .gr-cadeado rect, .gr-no .gr-cadeado circle, .gr-bloqueio .gr-cadeado rect, .gr-bloqueio .gr-cadeado circle { fill: var(--text-1); stroke: none; }
+.gr-no .gr-cadeado .gr-cadeado-furo, .gr-bloqueio .gr-cadeado .gr-cadeado-furo { fill: var(--bg-2); }
+.gr-bloqueio {
+  display: flex; align-items: flex-start; gap: 0.6rem; margin-top: 0.4rem; padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border); border-left: 3px solid var(--text-1); border-radius: 6px; background: var(--bg-2);
+}
+.gr-bloqueio svg { flex: 0 0 auto; width: 18px; height: 20px; margin-top: 0.1rem; }
+.gr-bloqueio p { margin: 0; font-size: 0.78rem; line-height: 1.4; color: var(--text-1); }
+.gr-bloqueio strong { display: block; color: var(--text-0); font-size: 0.82rem; margin-bottom: 0.1rem; }
 .gr-ficha {
   width: 330px; max-height: 70vh; overflow-y: auto; background: var(--bg-1);
   border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 0.9rem; font-size: 0.8rem;

@@ -3,13 +3,21 @@ import { mascaraDoc } from '../core/pacote-parser.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const temNumero = v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+const AVISO_BLOQUEIO = 'Entre em contato para desbloquear o Grafo Completo';
+const cadeado = (k = 1) => `<g class="gr-cadeado" transform="scale(${k})">
+  <path d="M-3.1 -1.2 V-3.3 a3.1 3.1 0 0 1 6.2 0 V-1.2" fill="none" stroke-width="1.7" stroke-linecap="round"></path>
+  <rect x="-4.6" y="-1.4" width="9.2" height="7.2" rx="1.6"></rect>
+  <circle cx="0" cy="1.7" r="1.05" class="gr-cadeado-furo"></circle>
+  <rect x="-0.45" y="1.9" width="0.9" height="2.1" rx="0.4" class="gr-cadeado-furo"></rect>
+</g>`;
 
 export function normalizar(dados) {
   const nos = ((dados && dados.nos) || []).map(n => ({
     id: n.id, cor: n.cor || '#58a6ff', tipo: n.tipo || '',
-    titulo: n.nome || n.id, doc: n.doc ? mascaraDoc(n.doc) : '',
+    titulo: n.nome || n.id, doc: !n.doc ? '' : n.bloqueado === true ? String(n.doc) : mascaraDoc(n.doc),
     x: temNumero(n.x) ? Number(n.x) : NaN, y: temNumero(n.y) ? Number(n.y) : NaN,
     camada: Number(n.camada) || 0,
+    bloqueado: n.bloqueado === true,
     ficha: (n.ficha || []).filter(l => Array.isArray(l) && l[1] !== '' && l[1] != null),
   }));
   const soltos = nos.filter(n => Number.isNaN(n.x) || Number.isNaN(n.y));
@@ -28,6 +36,14 @@ export function normalizar(dados) {
 }
 
 function ficha(n) {
+  if (n.bloqueado) {
+    return `<h4 class="gr-ficha-tit">${escapeHtml(n.titulo)}</h4>
+    ${n.doc ? `<p class="gr-ficha-doc">${escapeHtml(n.doc)}</p>` : ''}
+    <div class="gr-bloqueio">
+      <svg viewBox="-7 -8 14 15" aria-hidden="true">${cadeado()}</svg>
+      <p><strong>Informação bloqueada</strong>${escapeHtml(AVISO_BLOQUEIO)}</p>
+    </div>`;
+  }
   return `<h4 class="gr-ficha-tit">${escapeHtml(n.titulo)}</h4>
     ${n.doc ? `<p class="gr-ficha-doc">${escapeHtml(n.doc)}</p>` : ''}
     <dl class="gr-ficha-dl">${n.ficha.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(String(v))}</dd>`).join('')}</dl>`;
@@ -36,10 +52,11 @@ function ficha(n) {
 export function desenharGrafo(el, dados) {
   const g = normalizar(dados || {});
   const porId = new Map(g.nos.map(n => [n.id, n]));
+  const bloqueados = g.nos.filter(n => n.bloqueado).length;
   el.innerHTML = `
     <div class="tb-barra">
       <input type="search" class="filter-input gr-busca" placeholder="Localizar nome ou documento..." autocomplete="off" />
-      <span class="tb-info">${g.nos.length} nó(s) · ${g.arestas.length} ligação(ões)</span>
+      <span class="tb-info">${g.nos.length} nó(s) · ${g.arestas.length} ligação(ões)${bloqueados ? ` · ${bloqueados} bloqueado(s)` : ''}</span>
       <button type="button" class="btn-ghost gr-centro">Centralizar</button>
     </div>
     <div class="gr-area">
@@ -70,11 +87,12 @@ export function desenharGrafo(el, dados) {
   const grupos = new Map();
   for (const n of g.nos) {
     const gr = document.createElementNS(SVG, 'g');
-    gr.setAttribute('class', 'gr-no');
+    gr.setAttribute('class', n.bloqueado ? 'gr-no gr-no-bloq' : 'gr-no');
     gr.setAttribute('transform', `translate(${n.x},${n.y})`);
     const raio = n.tipo === 'empresa' ? 13 : 9;
-    gr.innerHTML = `<circle r="${raio}" fill="${escapeHtml(n.cor)}"></circle>
+    gr.innerHTML = `${n.bloqueado ? `<circle r="${raio}" class="gr-bloq-fundo"></circle>${cadeado(raio / 9)}` : `<circle r="${raio}" fill="${escapeHtml(n.cor)}"></circle>`}
       <text y="${raio + 13}" text-anchor="middle">${escapeHtml(String(n.titulo).slice(0, 34))}</text>`;
+    if (n.bloqueado) { const t = document.createElementNS(SVG, 'title'); t.textContent = AVISO_BLOQUEIO; gr.appendChild(t); }
     gr.addEventListener('click', e => { e.stopPropagation(); selecionar(n.id); });
     camada.appendChild(gr);
     grupos.set(n.id, gr);
